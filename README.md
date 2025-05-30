@@ -4,6 +4,7 @@
 1. Установите [n8n](https://docs.n8n.io/choose-n8n/) локально (или используйте n8n Cloud)
 2. Перейдите в папку с нужной версией и установите все зависимости:
 	`pip install -r requirements.txt`
+3. Скопируйте папку в Jarvis SileroTTS speakerpy в папку с расположением пакетов python (Lib\site-packages)
 
 ## Настройка:
 ### n8n
