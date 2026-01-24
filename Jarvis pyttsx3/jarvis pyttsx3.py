@@ -32,40 +32,40 @@ class MicrophoneManager:
             self.is_active = False
             self.audio_stream = None
 
-def safe_microphone_control(enable: bool): #управление микрофоном (вкл, выкл)
+def microphone_control(enable: bool): #управление микрофоном (вкл, выкл)
     if enable and not mic_manager.is_active:
         mic_manager.__enter__()
     elif not enable and mic_manager.is_active:
         mic_manager.__exit__(None, None, None)
 
-def play_text(text): #озвучивние текста
-    safe_microphone_control(False)
+def text_playback(text): #озвучивние текста
+    microphone_control(False)
     text = text.replace('*', '').replace('`', '').replace("#", "")
     text = re.sub(r'[^\w\s,.!?;:\'"-]', '', text)
     engine.say(text)
     engine.runAndWait()
 
-def hi(): #функция приветствия после активационное фразы
+def voicing_greetings(): #функция приветствия после активационное фразы
     mixer.music.load(f"sound/greet{random.choice([1, 2, 3])}.wav")
     mixer.music.play()
     while mixer.music.get_busy():
-        safe_microphone_control(False)
+        microphone_control(False)
     #time.sleep(1)
     print("К вашим услугам, сэр")
 
-def brain(text): #функция ответа нейросетью
+def request_processing(text): #функция ответа нейросетью
     data = {
         "chatInput": text,
         "sessionId": session_id
     }
 
     response = requests.post(webhook_n8n, json=data)
-    resault_response = response.json()
-    print(resault_response['output'])
-    return resault_response['output']
+    response = response.json()
+    print(response['output'])
+    return response['output']
 
 
-def handle_commands():
+def command_processing():
     try:
         while True:
             with mic_manager:
@@ -75,7 +75,7 @@ def handle_commands():
                     audio = recognizer.listen(mic_manager.mic, timeout=timeout)
                     text = recognizer.recognize_google(audio, language="ru")
                     text_for_cmd = text.lower().strip().replace('!', '').replace('.', '').replace('?', '').replace(',', '')
-                    print(f"Вы сказали: {text}")
+                    print(f"Вы сказали: {text, text_for_cmd}")
                     handled = False
 
 
@@ -100,7 +100,7 @@ def handle_commands():
                     continue
 
                 if not handled:
-                    play_text(brain(text))
+                    text_playback(request_processing(text))
                     break
 
     except sr.RequestError as e:
@@ -145,8 +145,8 @@ def main():
         if prediction['hey jarvis'] > 0.25:
             stream.stop_stream()
             oww_model.reset()
-            hi()
-            handle_commands()
+            voicing_greetings()
+            command_processing()
             #time.sleep(3)
             stream.start_stream()
             print("Ожидаю активационную фразу...")

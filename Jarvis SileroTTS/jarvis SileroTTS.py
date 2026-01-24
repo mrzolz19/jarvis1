@@ -4,13 +4,13 @@ import sys
 from configparser import ConfigParser
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1' #убираем вывод от pygame
-from pygame import mixer
+from pygame import mixer as mx
 from speakerpy.lib_speak import Speaker as sp
 import requests
 import uuid
-import openwakeword
+import openwakeword 
 from openwakeword.model import Model
-import pyaudio
+import pyaudio as pu
 import numpy as np
 
 class MicrophoneManager:
@@ -18,7 +18,6 @@ class MicrophoneManager:
         self.mic = sr.Microphone()
         self.is_active = False
         self.audio_stream = None
-
     def __enter__(self):
         if not self.is_active:
             self.audio_stream = self.mic.__enter__()
@@ -31,36 +30,35 @@ class MicrophoneManager:
             self.is_active = False
             self.audio_stream = None
 
-def safe_microphone_control(enable: bool): #управление микрофоном (вкл, выкл)
+def microphone_control(enable: bool): #Функция управление микрофоном (вкл, выкл)
     if enable and not mic_manager.is_active:
         mic_manager.__enter__()
     elif not enable and mic_manager.is_active:
         mic_manager.__exit__(None, None, None)
 
-def play_text(text): #озвучивние текста
-    safe_microphone_control(False)
+def text_playback(text): #Функция озвучивания текста
+    microphone_control(False)
     speaker.speak(text=str(text), sample_rate=48000, speed=1.10, put_accent=True, put_yo=True)
 
-def hi(): #функция приветствия после активационное фразы
-    mixer.music.load(f"sound/greet{random.choice([1, 2, 3])}.wav")
-    mixer.music.play()
-    while mixer.music.get_busy():
-        safe_microphone_control(False)
+def voicing_greetings(): #Функция приветствия
+    mx.music.load(f"sound/greet{random.choice([1, 2, 3])}.wav")
+    mx.music.play()
+    while mx.music.get_busy():
+        microphone_control(False)
     print("К вашим услугам, сэр")
 
-def brain(text): #запрос в n8n и получение ответа от него
+def request_processing(text): #Функция обработки запроса в программу n8n и получение ответа от него
     data = {
         "chatInput": text,
         "sessionId": session_id
     }
 
     response = requests.post(webhook_n8n, json=data)
-    resault_response = response.json()
-    print(resault_response['output'])
-    return resault_response['output']
+    response = response.json()
+    print(response['output'])
+    return response['output']
 
-
-def handle_commands():
+def command_processing(): 
     try:
         while True:
             with mic_manager:
@@ -77,14 +75,14 @@ def handle_commands():
                     #Команды:
                     if text_for_cmd in cmd_exit:
                         print("Отключаю питание")
-                        mixer.music.load("sound/off_power.wav")
-                        mixer.music.play()
+                        mx.music.load("sound/off_power.wav")
+                        mx.music.play()
                         sys.exit()
                         handled = True
 
-                    if not text.strip():
+                    '''if not text.strip():
                         print("Пустая команда")
-                        continue
+                        continue'''
 
                 #Анализ сказанного:
                 except sr.WaitTimeoutError:
@@ -95,7 +93,7 @@ def handle_commands():
                     continue
 
                 if not handled:
-                    play_text(brain(text))
+                    text_playback(request_processing(text))
                     break
 
     except sr.RequestError as e:
@@ -104,9 +102,9 @@ def handle_commands():
         print(f"Ошибка: {e}")
 
 def main():
-    mixer.init()
-    mixer.music.load("sound/run.wav")
-    mixer.music.play()
+    mx.init()
+    mx.music.load("sound/run.wav")
+    mx.music.play()
     try:
         oww_model = Model(
             wakeword_models=[model_path],
@@ -121,13 +119,13 @@ def main():
     chunk_size = 1280
 
     # Инициализация PyAudio
-    audio_interface = pyaudio.PyAudio()
+    audio_interface = pu.PyAudio()
     stream = audio_interface.open(
-        format=pyaudio.paInt16,
-        channels=1,
-        rate=sample_rate,
-        input=True,
-        frames_per_buffer=chunk_size
+        format = pu.paInt16,
+        channels = 1,
+        rate = sample_rate,
+        input = True,
+        frames_per_buffer = chunk_size
     )
 
     print("Ожидаю активационную фразу...")
@@ -140,8 +138,8 @@ def main():
         if prediction['hey jarvis'] > 0.25:
             stream.stop_stream()
             oww_model.reset()
-            hi()
-            handle_commands()
+            voicing_greetings()
+            command_processing()
             stream.start_stream()
             print("Ожидаю активационную фразу...")
 
@@ -175,6 +173,6 @@ if __name__ == "__main__":
         main()
 
     else:
-        webhook_n8n =config['Settings']['webhook_n8n']
+        webhook_n8n = config['Settings']['webhook_n8n']
         session_id = str(uuid.uuid4())
         main()
