@@ -5,7 +5,7 @@
 2. Перейдите в папку telegram-bot и установите все зависимости:
 	`pip install -r requirements.txt`
 или перед этим создайте и активируйте виртуальную среду командой `python -m venv env` и перейдите в папку env/Scripts командой `cd  	env/Scripts`и активируйте среду командой `activate`, а потом запускайте `pip install -r requirements.txt` (на Windows)
-3. Скачайте ffmpeg и установите его в переменные окружения по этой инструкции: https://www.wikihow.com/Install-FFmpeg-on-Windows
+3. Скачайте ffmpeg и установите его в переменные окружения (Windows) по этой инструкции: https://www.wikihow.com/Install-FFmpeg-on-Windows
 ### Настройка:
 #### n8n
 1. Активируйте n8n, установите мой workflow и скопируйте из Chat Trigger свой Webhook и вставьте его в переменную `webhook_n8n` после равно в файле `main.py`
