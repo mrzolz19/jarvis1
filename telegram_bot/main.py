@@ -7,10 +7,20 @@ import ffmpeg
 import requests
 import uuid
 import json
+import time
+import warnings
 from urllib.parse import urlparse, urlunparse
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Suppress noisy warning from packaged torch module used by TTS model.
+warnings.filterwarnings(
+    "ignore",
+    category=SyntaxWarning,
+    message=r".*invalid escape sequence '\\\^'.*",
+    module=r".*multi_acc_v3_package.*",
+)
 
 bot_token = os.getenv("BOT_TELEGRAM_API")
 if not bot_token:
@@ -19,6 +29,10 @@ if not bot_token:
 bot = telebot.TeleBot(bot_token) # API Токен бота в телеграмме
 webhook_n8n = os.getenv("WEBHOOK_N8N") # Вставьте сюда URL вашего webhook из n8n
 owner_id_raw = os.getenv("OWNER_ID")
+N8N_CONNECT_TIMEOUT = float(os.getenv("N8N_CONNECT_TIMEOUT", "10"))
+N8N_READ_TIMEOUT = float(os.getenv("N8N_READ_TIMEOUT", "120"))
+N8N_RETRY_ATTEMPTS = int(os.getenv("N8N_RETRY_ATTEMPTS", "2"))
+N8N_RETRY_DELAY_SECONDS = float(os.getenv("N8N_RETRY_DELAY_SECONDS", "1.5"))
 if not owner_id_raw:
     raise ValueError("Не задан OWNER_ID в .env")
 if not webhook_n8n:
@@ -114,33 +128,66 @@ def _http_fallback_url(url: str) -> str:
     return urlunparse(parsed._replace(scheme="http"))
 
 
+def _post_n8n(url: str, data: dict) -> dict:
+    total_attempts = max(1, N8N_RETRY_ATTEMPTS + 1)
+    for attempt in range(1, total_attempts + 1):
+        try:
+            response = requests.post(
+                url,
+                json=data,
+                timeout=(N8N_CONNECT_TIMEOUT, N8N_READ_TIMEOUT),
+            )
+            response.raise_for_status()
+            return response.json()
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as timeout_err:
+            if attempt == total_attempts:
+                raise timeout_err
+            print(
+                f"Таймаут запроса к n8n (попытка {attempt}/{total_attempts}), повтор через "
+                f"{N8N_RETRY_DELAY_SECONDS}с: {timeout_err}"
+            )
+            time.sleep(N8N_RETRY_DELAY_SECONDS)
+
+
 def ai_response(user_message: str, session_id: str) -> str:
     data = {    
+        "action": "sendMessage",
         "chatInput": user_message,
         "sessionId": session_id 
     }
     try:
-        response = requests.post(webhook_n8n, json=data, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-        print(result['output'])
-        return result['output']
+        result = _post_n8n(webhook_n8n, data)
+        output = result.get("output") if isinstance(result, dict) else None
+        if output is None:
+            print(f"Ответ n8n без поля output: {result}")
+            return "Запрос обработан, но формат ответа n8n отличается от ожидаемого."
+        print(output)
+        return output
 
     except requests.exceptions.SSLError as ssl_err:
         # Частый кейс: endpoint работает по HTTP, а в .env указан HTTPS.
         if "WRONG_VERSION_NUMBER" in str(ssl_err).upper() and webhook_n8n.lower().startswith("https://"):
             fallback_url = _http_fallback_url(webhook_n8n)
             try:
-                response = requests.post(fallback_url, json=data, timeout=30)
-                response.raise_for_status()
-                result = response.json()
-                print(result['output'])
-                return result['output']
+                result = _post_n8n(fallback_url, data)
+                output = result.get("output") if isinstance(result, dict) else None
+                if output is None:
+                    print(f"Ответ n8n без поля output (fallback HTTP): {result}")
+                    return "Запрос обработан, но формат ответа n8n отличается от ожидаемого."
+                print(output)
+                return output
             except requests.exceptions.RequestException as fallback_err:
                 print(f"Ошибка запроса к n8n (fallback HTTP): {fallback_err}")
                 return "Извините, произошла ошибка при обработке запроса."
         print(f"SSL ошибка при запросе к n8n: {ssl_err}")
         return "Извините, произошла ошибка при обработке запроса."
+
+    except requests.exceptions.ReadTimeout as timeout_err:
+        print(f"Таймаут чтения ответа от n8n: {timeout_err}")
+        return (
+            "Сервис n8n отвечает слишком долго. Попробуйте ещё раз через минуту "
+            "или уменьшите сложность запроса."
+        )
 
     except requests.exceptions.RequestException as e:
         print(f"Ошибка запроса к n8n: {e}")
