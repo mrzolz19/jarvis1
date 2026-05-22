@@ -9,7 +9,7 @@
 4. Скачайте ffmpeg и установите его в переменные окружения (Windows) по этой инструкции: https://www.wikihow.com/Install-FFmpeg-on-Windows
 ### Настройка:
 #### n8n
-1. Активируйте n8n, установите мой workflow и скопируйте из Chat Trigger свой Webhook и вставьте его в переменную `webhook_n8n` после равно в файле `main.py`
+1. Активируйте n8n, установите мой workflow и скопируйте из Chat Trigger свой Webhook и в файле .env вставьте ссылку WEBHOOK_N8N после равно.
 #### Телеграмм
 1. Создайте бота в @BotFather и скопируйте его API-ключ и вставьте его .env файл, узнайте свой chat id в боте @userinfobot и вставьте его в переменную `OWNER_ID` после равно.
 2. Скопируйте свой [GROQ_API ключ](https://console.groq.com/keys) и вставьте его после равно.
