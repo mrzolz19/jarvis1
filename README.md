@@ -1,58 +1,123 @@
 # Личный голосовой ассистент J.A.R.V.I.S на python.
-## 1. Телеграм-бот
-### Установка
-1. Установите [n8n](https://docs.n8n.io/choose-n8n/) локально (или используйте n8n Cloud)
-2. Перейдите в папку telegram-bot и установите все зависимости:
-	`pip install -r requirements.txt`
-или перед этим создайте и активируйте виртуальную среду командой `python -m venv env` и перейдите в папку env/Scripts командой `cd  	env/Scripts`и активируйте среду командой `activate`, а потом запускайте `pip install -r requirements.txt` (на Windows)
-3. Скачайте модель TTS отсюда https://models.silero.ai/models/tts/ru/v5_cis_ext.pt и переместите в папку с программой telegram/bot/speakerpy/model/ 
-4. Скачайте ffmpeg и установите его в переменные окружения (Windows) по этой инструкции: https://www.wikihow.com/Install-FFmpeg-on-Windows
-### Настройка:
-#### n8n
+## Telegram-бот
+Проект представляет собой персонального голосового ассистента в Telegram, построенного на базе интеграции внешнего ИИ-оркестратора (n8n), облачного распознавания речи (Groq Whisper) и локального синтеза речи (Silero TTS).
+Бот работает в приватном режиме — он обрабатывает запросы исключительно от администратора (владельца), чей ID указан в конфигурации.
+
+### 🛠 Архитектура и стек технологий
+Ассистент реализует полный цикл обработки голосового интерфейса (Voice-to-Voice):
+1. Прием аудио: Бот принимает голосовое сообщение .ogg (Opus) от пользователя.
+2. STT (Speech-to-Text): Файл конвертируется в .wav и отправляется в API Groq Cloud (модель whisper-large-v3), возвращая текст.
+3. ИИ-логика (LLM): Распознанный текст отправляется на Webhook в n8n, где происходит основная обработка контекста, работа с базой знаний (RAG) и агентами. n8n возвращает текстовый ответ.
+4. TTS (Text-to-Speech): Текстовый ответ озвучивается локально с помощью библиотеки speakerpy и предобученных моделей Silero TTS (используется качественная модель v5_1_ru, голос aidar).
+5. Отправка: Бот возвращает пользователю текстовый дубликат и голосовое сообщение.
+
+### Основные библиотеки:
+- pyTelegramBotAPI (telebot) — интерфейс взаимодействия с Telegram Bot API.
+- groq — клиент для быстрой транскрипции аудио через API Whisper
+- speakerpy & silero — локальный синтез речи на базе PyTorch без необходимости обращаться к платным внешним API генерации речи.
+- ffmpeg-python — программная конвертация аудиопотоков (OGG <-> WAV).
+= requests — взаимодействие с вебхуками n8n (с поддержкой автоматических повторов при таймаутах и редиректа на HTTP при ошибках SSL).
+
+### 📁 Структура проекта
+```plaintext
+├── main.py                   # Основной исполняемый файл бота
+├── requirements.txt          # Зависимости Python-окружения
+├── .env                      # Файл с конфигурацией и API-ключами (создается вручную)
+├── latest_silero_models.yml  # Справочник доступных моделей и ссылок Silero
+└── user_sessions.json        # Файл истории сессий пользователей (генерируется автоматически)
+```
+## ⚙️Инструкция по установке и запуску
+### 1. Телеграм-бот
+#### Установка
+1. Установите [n8n](https://docs.n8n.io/choose-n8n/) локально (через Docker или NodeJS) или на сервер
+2. Для работы бота в системе должен быть установлен FFmpeg для конвертации аудиофайлов.
+	- Linux (Ubuntu/Debian):
+
+	```bash
+ 	sudo apt update && sudo apt install ffmpeg -y
+ 	```
+ 
+ 	- macOS (через Homebrew):
+
+	```bash
+ 	brew install ffmpeg
+ 	```
+ 
+	- Windows: Скачайте бинарные файлы с официального сайта FFmpeg, распакуйте и добавьте путь к папке bin в системную переменную PATH
+3. Клонируйте и подготовте окружения
+- Склонируйте репозиторий и перейдите в его директорию:
+
+	```bash
+	git clone https://github.com/mrzolz19/jarvis1.git
+	cd telegram_bot
+	```
+- Создайте виртуальное окружение и установите зависимости:
+	```bash
+	python -m venv venv
+	# Активация для Linux/macOS:
+	source venv/bin/activate
+	# Активация для Windows:
+	venv\Scripts\activate
+
+	pip install -r requirements.txt
+	```
+4. Отредактируйте в корне проекта файл .env на основе предоставленного шаблона в файле
+5. Скачайте модель TTS отсюда https://models.silero.ai/models/tts/ru/v5_cis_ext.pt и переместите в папку с программой telegram/bot/speakerpy/model/ 
+#### Настройка
+##### n8n
 1. Активируйте n8n, установите мой workflow и скопируйте из Chat Trigger свой Webhook и в файле .env вставьте ссылку WEBHOOK_N8N после равно.
-#### Телеграмм
+##### Телеграмм
 1. Создайте бота в @BotFather и скопируйте его API-ключ и вставьте его .env файл, узнайте свой chat id в боте @userinfobot и вставьте его в переменную `OWNER_ID` после равно.
 2. Скопируйте свой [GROQ_API ключ](https://console.groq.com/keys) и вставьте его после равно.
 
- 
-## 2. Установка локально:
-### 1. Установка 
-1. Установите [n8n](https://docs.n8n.io/choose-n8n/) локально (или используйте n8n Cloud)
-2. Перейдите в папку с нужной версией и установите все зависимости:
-	`pip install -r requirements.txt`
-	или перед этим создайте и активируйте виртуальную среду командой `python -m venv env` и перейдите в папку env/Scripts командой `cd  	env/Scripts`и активируйте среду командой `activate`, а потом запускайте `pip install -r requirements.txt` (на Windows)
+### 2. Установка локально:
+1. Установите [n8n](https://docs.n8n.io/choose-n8n/) локально (через Docker или NodeJS) или на сервер
+2. Клонируйте и подготовте окружение
+- Склонируйте репозиторий и перейдите в его директорию:
 
-### 2. Настройка:
-#### n8n
-1. Активируйте n8n
-	`n8n`
+	```bash
+	git clone https://github.com/mrzolz19/jarvis1.git
+	cd telegram_bot
+	```
+- Создайте виртуальное окружение и установите зависимости:
+	```bash
+	python -m venv venv
+	# Активация для Linux/macOS:
+	source venv/bin/activate
+	# Активация для Windows:
+	venv\Scripts\activate
 
-2. Перейдите в Overview и создайте шаблон
+	pip install -r requirements.txt
+	```
 
-![chrome_TuGP7qCR33](https://github.com/user-attachments/assets/58a1c543-b50f-4201-ae0f-e27ea29c8345)
-![chrome_qVjPbO9hqE](https://github.com/user-attachments/assets/89a5ac67-704d-4ace-918c-1e4b78e2dae5)
-![chrome_Q3q3cAeNPh](https://github.com/user-attachments/assets/51fb4d05-5464-4d02-ab81-1cbafd7e994f)
+#### Настройка:
+##### n8n
+1. Активируйте n8n, установите мой workflow и скопируйте из Chat Trigger свой Webhook и в файле .env вставьте ссылку WEBHOOK_N8N после равно.
 
-3. Импортируйте мой шаблон n8n_config.json
-4. Подключите [API DeepSeek](https://platform.deepseek.com/api_keys) или любую другую модель, инструменты
-5. Перейдите в настройки Trigger, скопируйте Chat URL
-
-![7rIy3xN3nm](https://github.com/user-attachments/assets/6f987e54-a492-4438-b0c0-bc29daf4c446)
-![ShareX_LNCB8DrpCf 1](https://github.com/user-attachments/assets/b6e4b16c-a81f-4b02-b594-dc15a1605190)
-
-6. Активируйте workflow
-
-![szr2asRAaE](https://github.com/user-attachments/assets/929ca5e5-6cad-435f-8e5a-ac3c8b83baec)
-
-
-#### Настройка конфигурационного файла:
-##### Локальный ассистент
-- Перейдите в settings.ini чтобы вставить скопированный Chat URL в строчку после "=" webhook_n8n
+##### Настройка конфигурационного файла:
+- Перейдите в settings.ini чтобы вставить скопированный Chat Webhook в строчку после "=" webhook_n8n
 - Установите при необходимости нужные команды в Commands для выхода из программы
-##### Телеграм бот:
 
-## 3. Запустите:
-Предварительно вернитесь в корневой каталог версии если вы запускались из виртульные среды командой env `cd ../..`
-`python main.py`
-`python jarvis pyttsx3.py`
-`python jarvis SileroTTS.py`
+## 🚀 Использование и запуск
+### Telegram бот
+Вы можете писать боту обычные текстовые сообщения или отправлять голосовые заметки. В обоих случаях он ответит текстом и продублирует ответ голосовым сообщением.
+
+Доступные команды управления контекстом:
+- /help — Показать краткую справку по командам.
+- /new или /newsession — Сбросить контекст и создать новую сессию диалога. Полезно, если ИИ зациклился или вы хотите начать обсуждение новой темы с чистого листа.
+- /session — Показать уникальный UUID текущей активной сессии.
+- /sessions — Вывести список из 10 последних сессий с отметкой, какая из них активна в данный момент.
+- /switch <session_id> — Переключиться на одну из старых сессий из истории, чтобы продолжить прерванный диалог.
+
+### Запуск
+Предварительно вернитесь в корневой каталог нужной версси
+
+```bash
+python main.py
+```
+```bash
+python main_pyttsx3.py
+```
+```bash
+python main_silerotts.py
+```
