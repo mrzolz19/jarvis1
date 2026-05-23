@@ -1,0 +1,1858 @@
+{
+  "name": "JARVIS Personal Voice Assistant v2",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "allowedOrigins": "*",
+          "responseMode": "responseNode"
+        }
+      },
+      "id": "c53c5495-3167-40b4-a8f9-7a0f44d9ec20",
+      "name": "When voice/chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "8ba08722-9b24-4978-a1f1-48b6c0e3591b"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Ты персональный голосовой ассистент. Фокус: цели, повседневные дела, планирование, напоминания и календарь. Действуй через подключенные инструменты. Всегда: 1) уточняй отсутствующие ключевые данные; 2) перед удалением/переносом важного — спрашивай подтверждение; 3) после действий давай краткий отчет. Обязательно поддерживай персонализацию: обновляй цели, привычки и журнал через Data Table tools (Ensure Goals/Habits/Journal/Reminder tables, Goals/Habits/Journal/Reminder State Read/Upsert). Для целей — предлагай декомпозицию на конкретные задачи в Google Tasks и time-block в Google Calendar.",
+          "maxIterations": 20
+        }
+      },
+      "id": "6688f59a-f12c-471e-bcf1-b44b3db23e74",
+      "name": "Personal Voice Assistant",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        608,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-v4-flash",
+        "options": {
+          "temperature": 0.2,
+          "maxRetries": 2
+        }
+      },
+      "id": "74694bf7-15da-4252-a6e8-423d730a6fed",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        320,
+        1280
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "o6Xkyh84tGweMJio",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "id": "26510a18-6a0e-48e4-8474-84142f95bd25",
+      "name": "Engram Memory",
+      "type": "n8n-nodes-engram.engramMemory",
+      "typeVersion": 1,
+      "position": [
+        496,
+        1280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "744d3f3c-997a-404f-b21d-5f1adf8d0cd9",
+      "name": "Calculator",
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        752,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "49ea686b351999f86fd166328cf1460b458c9d082ca730f3d6c5ad7441007487@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('availability_start', 'Начало интервала в ISO 8601') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('availability_end', 'Конец интервала в ISO 8601') }}",
+        "options": {
+          "outputFormat": "availability"
+        }
+      },
+      "id": "5d5cbb48-c974-434c-a90b-04da1e126853",
+      "name": "Calendar Availability",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        1152
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "7o4NLz2Owr18N0GQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "49ea686b351999f86fd166328cf1460b458c9d082ca730f3d6c5ad7441007487@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "options": {}
+      },
+      "id": "a8bf36c2-01d5-46eb-a987-767f9f1211b9",
+      "name": "Calendar Create Event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        1152
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "7o4NLz2Owr18N0GQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "49ea686b351999f86fd166328cf1460b458c9d082ca730f3d6c5ad7441007487@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('events_from', 'Период от в ISO 8601') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('events_to', 'Период до в ISO 8601') }}",
+        "options": {
+          "orderBy": "startTime"
+        }
+      },
+      "id": "03ac07ab-24e6-458c-9395-577d55e24ef0",
+      "name": "Calendar List Events",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1408,
+        1152
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "7o4NLz2Owr18N0GQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "49ea686b351999f86fd166328cf1460b458c9d082ca730f3d6c5ad7441007487@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('event_id', 'ID события для изменения') }}",
+        "updateFields": {
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_event_description', 'Новое описание события') }}",
+          "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_event_end', 'Новое время конца в ISO 8601') }}",
+          "location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_event_location', 'Новое место события') }}",
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_event_start', 'Новое время начала в ISO 8601') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_event_title', 'Новое название события') }}"
+        }
+      },
+      "id": "42aee059-26ab-4bee-9933-aa2510f86f8d",
+      "name": "Calendar Update Event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1632,
+        1152
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "7o4NLz2Owr18N0GQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "49ea686b351999f86fd166328cf1460b458c9d082ca730f3d6c5ad7441007487@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('event_id', 'ID события для удаления') }}",
+        "options": {}
+      },
+      "id": "8c676f36-18af-4327-9a8f-c70cdca99fc0",
+      "name": "Calendar Delete Event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1840,
+        1152
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "7o4NLz2Owr18N0GQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "task": "@default",
+        "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_title', 'Название задачи') }}",
+        "additionalFields": {
+          "dueDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_due', 'Дедлайн задачи в ISO 8601') }}",
+          "notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_notes', 'Детали задачи') }}"
+        }
+      },
+      "id": "379cccf0-12fc-4566-85bb-266cfc0ccee9",
+      "name": "Tasks Create",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        1392
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "YCiPxsUCbmrhKA5L",
+          "name": "Google Tasks account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "task": "@default",
+        "limit": 50,
+        "additionalFields": {
+          "showCompleted": true,
+          "showDeleted": false,
+          "showHidden": false
+        }
+      },
+      "id": "45b5eeca-df88-4920-9b61-33198fcdbfa5",
+      "name": "Tasks List",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        1392
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "YCiPxsUCbmrhKA5L",
+          "name": "Google Tasks account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "task": "@default",
+        "taskId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_id', 'ID задачи для изменения') }}",
+        "updateFields": {
+          "dueDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_task_due', 'Новый дедлайн задачи в ISO 8601') }}",
+          "notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_task_notes', 'Новые заметки задачи') }}",
+          "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_task_status', 'Статус задачи: needsAction или completed') }}",
+          "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_task_title', 'Новое название задачи') }}"
+        }
+      },
+      "id": "c50c86ee-25c5-47c8-8c97-0671327da049",
+      "name": "Tasks Update",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        1392
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "YCiPxsUCbmrhKA5L",
+          "name": "Google Tasks account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "task": "@default",
+        "taskId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_id', 'ID задачи для удаления') }}"
+      },
+      "id": "d12b2eca-a99d-49f9-a3c1-a4e8dd2bd090",
+      "name": "Tasks Delete",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        1392
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "YCiPxsUCbmrhKA5L",
+          "name": "Google Tasks account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "assistant_goals",
+        "columns": {
+          "column": [
+            {
+              "name": "goal_id"
+            },
+            {
+              "name": "title"
+            },
+            {
+              "name": "category"
+            },
+            {
+              "name": "target_date",
+              "type": "date"
+            },
+            {
+              "name": "priority",
+              "type": "number"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "progress",
+              "type": "number"
+            },
+            {
+              "name": "notes"
+            },
+            {
+              "name": "updated_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "81a64257-aa4e-4cfd-b3d2-08866b604f99",
+      "name": "Ensure Goals Table",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "assistant_habits",
+        "columns": {
+          "column": [
+            {
+              "name": "habit_id"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "date_key"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "streak",
+              "type": "number"
+            },
+            {
+              "name": "notes"
+            },
+            {
+              "name": "updated_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "54435023-b90e-4b81-9c73-fe5f35ffef95",
+      "name": "Ensure Habits Table",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "assistant_journal",
+        "columns": {
+          "column": [
+            {
+              "name": "entry_key"
+            },
+            {
+              "name": "entry_type"
+            },
+            {
+              "name": "summary"
+            },
+            {
+              "name": "details"
+            },
+            {
+              "name": "created_at",
+              "type": "date"
+            },
+            {
+              "name": "period_start",
+              "type": "date"
+            },
+            {
+              "name": "period_end",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "1e48278c-40df-4550-a169-73c1109b9451",
+      "name": "Ensure Journal Table",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1408,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "assistant_reminder_state",
+        "columns": {
+          "column": [
+            {
+              "name": "reminder_key"
+            },
+            {
+              "name": "entity_type"
+            },
+            {
+              "name": "entity_id"
+            },
+            {
+              "name": "escalation_level",
+              "type": "number"
+            },
+            {
+              "name": "next_ping_at",
+              "type": "date"
+            },
+            {
+              "name": "last_action"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "updated_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "bf18fe5b-0ed7-48d3-9042-f8eccf25b0d0",
+      "name": "Ensure Reminder State Table",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_goals"
+        },
+        "returnAll": true,
+        "orderBy": true,
+        "orderByColumn": "updatedAt"
+      },
+      "id": "06ad7774-bcbe-4664-9b67-37c1528d6a5d",
+      "name": "Goals Read",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        1872
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_habits"
+        },
+        "returnAll": true,
+        "orderBy": true,
+        "orderByColumn": "updatedAt"
+      },
+      "id": "73c0ff2a-1dd7-4909-9f8b-bbc7a664e904",
+      "name": "Habits Read",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        1872
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_journal"
+        },
+        "orderBy": true
+      },
+      "id": "80e7cab9-5ea8-4d93-85e8-cbf142bf8f88",
+      "name": "Journal Read",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1408,
+        1872
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_reminder_state"
+        },
+        "returnAll": true,
+        "orderBy": true,
+        "orderByColumn": "updatedAt"
+      },
+      "id": "40f7394f-b115-4a7b-a098-e2fa9d190f63",
+      "name": "Reminder State Read",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        1872
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_goals"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "goal_id",
+              "keyValue": "={{ $fromAI('goal_id', 'Уникальный ID цели') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "goal_id": "={{ $fromAI('goal_id', 'Уникальный ID цели') }}",
+            "title": "={{ $fromAI('goal_title', 'Название цели') }}",
+            "category": "={{ $fromAI('goal_category', 'Категория цели') }}",
+            "target_date": "={{ $fromAI('goal_target_date', 'Срок достижения в ISO 8601 или YYYY-MM-DD') }}",
+            "priority": "={{ $fromAI('goal_priority', 'Приоритет 1-5') }}",
+            "status": "={{ $fromAI('goal_status', 'Статус цели') }}",
+            "progress": "={{ $fromAI('goal_progress', 'Прогресс цели в процентах 0-100') }}",
+            "notes": "={{ $fromAI('goal_notes', 'Краткие заметки по цели') }}",
+            "updated_at": "={{ $fromAI('goal_updated_at', 'Дата обновления в ISO 8601') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "goal_id",
+              "displayName": "goal_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "target_date",
+              "displayName": "target_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "progress",
+              "displayName": "progress",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b9a4eb75-9e4c-4ea0-8884-2e03f5404b86",
+      "name": "Goals Upsert",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        2112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_habits"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "habit_id",
+              "keyValue": "={{ $fromAI('habit_id', 'Уникальный ID привычки') }}"
+            },
+            {
+              "keyName": "date_key",
+              "keyValue": "={{ $fromAI('habit_date_key', 'Дата привычки YYYY-MM-DD') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "habit_id": "={{ $fromAI('habit_id', 'Уникальный ID привычки') }}",
+            "name": "={{ $fromAI('habit_name', 'Название привычки') }}",
+            "date_key": "={{ $fromAI('habit_date_key', 'Дата привычки YYYY-MM-DD') }}",
+            "status": "={{ $fromAI('habit_status', 'Статус выполнения привычки') }}",
+            "streak": "={{ $fromAI('habit_streak', 'Текущий стрик в днях') }}",
+            "notes": "={{ $fromAI('habit_notes', 'Заметки по привычке') }}",
+            "updated_at": "={{ $fromAI('habit_updated_at', 'Дата обновления в ISO 8601') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "habit_id",
+              "displayName": "habit_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "date_key",
+              "displayName": "date_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "streak",
+              "displayName": "streak",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e2451ee5-d5ad-4b15-bc54-255d8cff87f2",
+      "name": "Habits Upsert",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        2112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_journal"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "entry_key",
+              "keyValue": "={{ $fromAI('entry_key', 'Уникальный ключ записи журнала') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "entry_key": "={{ $fromAI('entry_key', 'Уникальный ключ записи журнала') }}",
+            "entry_type": "={{ $fromAI('journal_entry_type', 'Тип записи журнала') }}",
+            "summary": "={{ $fromAI('journal_summary', 'Краткое резюме записи') }}",
+            "details": "={{ $fromAI('journal_details', 'Детали записи') }}",
+            "created_at": "={{ $fromAI('journal_created_at', 'Дата создания в ISO 8601') }}",
+            "period_start": "={{ $fromAI('journal_period_start', 'Начало периода в ISO 8601') }}",
+            "period_end": "={{ $fromAI('journal_period_end', 'Конец периода в ISO 8601') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "entry_key",
+              "displayName": "entry_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "entry_type",
+              "displayName": "entry_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "period_start",
+              "displayName": "period_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "period_end",
+              "displayName": "period_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f3989ac5-492b-4326-9a16-950bd446a576",
+      "name": "Journal Upsert",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1408,
+        2112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "assistant_reminder_state"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "reminder_key",
+              "keyValue": "={{ $fromAI('reminder_key', 'Уникальный ключ напоминания') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "reminder_key": "={{ $fromAI('reminder_key', 'Уникальный ключ напоминания') }}",
+            "entity_type": "={{ $fromAI('reminder_entity_type', 'Тип сущности') }}",
+            "entity_id": "={{ $fromAI('reminder_entity_id', 'ID сущности') }}",
+            "escalation_level": "={{ $fromAI('reminder_escalation_level', 'Уровень эскалации 0-3') }}",
+            "next_ping_at": "={{ $fromAI('reminder_next_ping_at', 'Следующее напоминание в ISO 8601') }}",
+            "last_action": "={{ $fromAI('reminder_last_action', 'Последнее действие по напоминанию') }}",
+            "status": "={{ $fromAI('reminder_status', 'Статус напоминания') }}",
+            "updated_at": "={{ $fromAI('reminder_updated_at', 'Дата обновления в ISO 8601') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "reminder_key",
+              "displayName": "reminder_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "entity_id",
+              "displayName": "entity_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "escalation_level",
+              "displayName": "escalation_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "next_ping_at",
+              "displayName": "next_ping_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ad2fe215-ce24-477e-a070-982ea0fd6b20",
+      "name": "Reminder State Upsert",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1616,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "40a68745-a24b-4345-b738-ef10e8f9527d",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        928,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "0b72178b-5bf6-4373-8e2d-c2b5445f215b",
+      "name": "Morning Briefing Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Сформируй утренний брифинг: ключевые события на сегодня, 3 главных приоритета, просроченные/рисковые задачи, и короткий план дня. Сохрани результат в assistant_journal как запись morning_briefing. При необходимости создай 1-2 фокус-блока в календаре и задачи подготовки.",
+        "options": {
+          "systemMessage": "Ты модуль утреннего брифинга. Всегда сначала обеспечь наличие таблиц (Ensure ... Table tools), затем прочитай календарь/задачи/цели/привычки и сохрани итог в Journal Upsert. Если есть критичные дедлайны, увеличь эскалацию в Reminder State Upsert.",
+          "maxIterations": 12
+        }
+      },
+      "id": "d19aeb88-07ca-4849-9296-70293ad7d2b3",
+      "name": "Morning Briefing Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        608,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 20,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "992d386d-98d8-4c01-b190-bdf4d7baf627",
+      "name": "Evening Planning Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Проведи вечернее планирование: подведи итоги дня, обнови прогресс целей и привычек, составь реалистичный план на завтра (до 5 приоритетов), создай недостающие задачи и календарные блоки. Сохрани результат в assistant_journal как evening_plan.",
+        "options": {
+          "systemMessage": "Ты модуль вечернего планирования. Обновляй цели и привычки через Goals/Habits Upsert, фиксируй отчет в Journal Upsert, декомпозируй большие цели в задачи Google Tasks с дедлайнами.",
+          "maxIterations": 14
+        }
+      },
+      "id": "61b6753e-2c79-4ad2-b848-8640bc9a89ba",
+      "name": "Evening Planning Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        608,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "b5dbf4dd-02fd-4445-9bd5-97d9bc764db9",
+      "name": "Hourly Reminder Escalation Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Проверь ближайшие события и задачи. Для просроченных или рисковых элементов обнови состояние эскалации напоминаний. Уровни: 1 мягкое напоминание, 2 повторное, 3 создать фокус-блок в календаре и пометить как срочно в заметках задачи. Сохрани изменения в assistant_reminder_state и журнал.",
+        "options": {
+          "systemMessage": "Ты модуль эскалации напоминаний. Используй Reminder State Read/Upsert как память эскалаций. Не спамь: увеличивай уровень только при сохранении риска. Фиксируй действия в Journal Upsert.",
+          "maxIterations": 12
+        }
+      },
+      "id": "bca0e7c5-6c78-427c-9f9c-927b1eacb8a8",
+      "name": "Reminder Escalation Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        608,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "id": "302ba3bb-6c8c-48db-aec3-815c0f6eb115",
+      "name": "Weekly Review Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Сделай weekly review: итоги недели, что выполнено/не выполнено, ключевые блокеры, прогресс по целям и привычкам, 3-5 фокусных направлений на следующую неделю. Сформируй план недели в задачах и календаре, сохрани ретроспективу и план в assistant_journal.",
+        "options": {
+          "systemMessage": "Ты модуль weekly review. Используй данные задач, календаря, целей и журнала. Обновляй цели при необходимости, создавай плановые задачи и time-block события следующей недели.",
+          "maxIterations": 16
+        }
+      },
+      "id": "1a0730e4-1da5-4d1d-8523-cc15902b72b9",
+      "name": "Weekly Review Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        608,
+        1040
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When voice/chat message received": {
+      "main": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Personal Voice Assistant": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Engram Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Create Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar List Events": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Update Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Delete Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tasks Create": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tasks List": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tasks Update": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tasks Delete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Goals Table": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Habits Table": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Journal Table": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Reminder State Table": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Goals Read": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Habits Read": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Journal Read": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reminder State Read": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Goals Upsert": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Habits Upsert": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Journal Upsert": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reminder State Upsert": {
+      "ai_tool": [
+        [
+          {
+            "node": "Personal Voice Assistant",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Morning Briefing Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Morning Briefing Trigger": {
+      "main": [
+        [
+          {
+            "node": "Morning Briefing Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evening Planning Trigger": {
+      "main": [
+        [
+          {
+            "node": "Evening Planning Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hourly Reminder Escalation Trigger": {
+      "main": [
+        [
+          {
+            "node": "Reminder Escalation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Review Trigger": {
+      "main": [
+        [
+          {
+            "node": "Weekly Review Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "1d264cee-a3dc-4832-9007-d84c1531cb90",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "instanceId": "cd226dd46f97bcaa4b98e0b0c21f38ee6b8dc7fbe81e38fd89cb3e9b07971ac0"
+  },
+  "id": "pAhyAubUHTmflHXc",
+  "tags": []
+}
