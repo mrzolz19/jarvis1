@@ -1,5 +1,5 @@
 {
-  "name": "JARVIS Personal Voice Assistant v2",
+  "name": "JARVIS Personal Voice Assistant v4",
   "nodes": [
     {
       "parameters": {
@@ -14,10 +14,7 @@
       "name": "When voice/chat message received",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "webhookId": "8ba08722-9b24-4978-a1f1-48b6c0e3591b"
     },
     {
@@ -31,10 +28,7 @@
       "name": "Personal Voice Assistant",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        608,
-        0
-      ]
+      "position": [608, 0]
     },
     {
       "parameters": {
@@ -48,10 +42,7 @@
       "name": "OpenRouter Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
-      "position": [
-        320,
-        1280
-      ],
+      "position": [320, 1280],
       "credentials": {
         "openRouterApi": {
           "id": "o6Xkyh84tGweMJio",
@@ -67,10 +58,7 @@
       "name": "Engram Memory",
       "type": "n8n-nodes-engram.engramMemory",
       "typeVersion": 1,
-      "position": [
-        496,
-        1280
-      ]
+      "position": [496, 1280]
     },
     {
       "parameters": {},
@@ -78,10 +66,7 @@
       "name": "Calculator",
       "type": "@n8n/n8n-nodes-langchain.toolCalculator",
       "typeVersion": 1,
-      "position": [
-        752,
-        1280
-      ]
+      "position": [688, 1280]
     },
     {
       "parameters": {
@@ -102,10 +87,7 @@
       "name": "Calendar Availability",
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.3,
-      "position": [
-        960,
-        1152
-      ],
+      "position": [960, 1152],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "7o4NLz2Owr18N0GQ",
@@ -128,10 +110,7 @@
       "name": "Calendar Create Event",
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.3,
-      "position": [
-        1184,
-        1152
-      ],
+      "position": [1184, 1152],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "7o4NLz2Owr18N0GQ",
@@ -158,10 +137,7 @@
       "name": "Calendar List Events",
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.3,
-      "position": [
-        1408,
-        1152
-      ],
+      "position": [1408, 1152],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "7o4NLz2Owr18N0GQ",
@@ -191,10 +167,7 @@
       "name": "Calendar Update Event",
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.3,
-      "position": [
-        1632,
-        1152
-      ],
+      "position": [1632, 1152],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "7o4NLz2Owr18N0GQ",
@@ -218,10 +191,7 @@
       "name": "Calendar Delete Event",
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.3,
-      "position": [
-        1840,
-        1152
-      ],
+      "position": [1840, 1152],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "7o4NLz2Owr18N0GQ",
@@ -231,7 +201,7 @@
     },
     {
       "parameters": {
-        "task": "@default",
+        "task": "MTUwMzI1MDMyNDg0MDQ2NTEwOTU6MDow",
         "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_title', 'Название задачи') }}",
         "additionalFields": {
           "dueDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_due', 'Дедлайн задачи в ISO 8601') }}",
@@ -242,10 +212,7 @@
       "name": "Tasks Create",
       "type": "n8n-nodes-base.googleTasksTool",
       "typeVersion": 1,
-      "position": [
-        1184,
-        1392
-      ],
+      "position": [1184, 1392],
       "credentials": {
         "googleTasksOAuth2Api": {
           "id": "YCiPxsUCbmrhKA5L",
@@ -256,7 +223,7 @@
     {
       "parameters": {
         "operation": "getAll",
-        "task": "@default",
+        "task": "MTUwMzI1MDMyNDg0MDQ2NTEwOTU6MDow",
         "limit": 50,
         "additionalFields": {
           "showCompleted": true,
@@ -268,10 +235,7 @@
       "name": "Tasks List",
       "type": "n8n-nodes-base.googleTasksTool",
       "typeVersion": 1,
-      "position": [
-        1408,
-        1392
-      ],
+      "position": [1408, 1392],
       "credentials": {
         "googleTasksOAuth2Api": {
           "id": "YCiPxsUCbmrhKA5L",
@@ -282,7 +246,7 @@
     {
       "parameters": {
         "operation": "update",
-        "task": "@default",
+        "task": "MTUwMzI1MDMyNDg0MDQ2NTEwOTU6MDow",
         "taskId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_id', 'ID задачи для изменения') }}",
         "updateFields": {
           "dueDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('new_task_due', 'Новый дедлайн задачи в ISO 8601') }}",
@@ -295,10 +259,8 @@
       "name": "Tasks Update",
       "type": "n8n-nodes-base.googleTasksTool",
       "typeVersion": 1,
-      "position": [
-        1632,
-        1392
-      ],
+      "position": [1632, 1392],
+      "notesInFlow": false,
       "credentials": {
         "googleTasksOAuth2Api": {
           "id": "YCiPxsUCbmrhKA5L",
@@ -309,17 +271,14 @@
     {
       "parameters": {
         "operation": "delete",
-        "task": "@default",
+        "task": "MTUwMzI1MDMyNDg0MDQ2NTEwOTU6MDow",
         "taskId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_id', 'ID задачи для удаления') }}"
       },
       "id": "d12b2eca-a99d-49f9-a3c1-a4e8dd2bd090",
       "name": "Tasks Delete",
       "type": "n8n-nodes-base.googleTasksTool",
       "typeVersion": 1,
-      "position": [
-        1840,
-        1392
-      ],
+      "position": [1840, 1392],
       "credentials": {
         "googleTasksOAuth2Api": {
           "id": "YCiPxsUCbmrhKA5L",
@@ -375,10 +334,7 @@
       "name": "Ensure Goals Table",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        960,
-        1632
-      ]
+      "position": [960, 1632]
     },
     {
       "parameters": {
@@ -420,10 +376,7 @@
       "name": "Ensure Habits Table",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1184,
-        1632
-      ]
+      "position": [1184, 1632]
     },
     {
       "parameters": {
@@ -466,10 +419,7 @@
       "name": "Ensure Journal Table",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1408,
-        1632
-      ]
+      "position": [1408, 1632]
     },
     {
       "parameters": {
@@ -515,10 +465,7 @@
       "name": "Ensure Reminder State Table",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1632,
-        1632
-      ]
+      "position": [1632, 1632]
     },
     {
       "parameters": {
@@ -530,16 +477,23 @@
         },
         "returnAll": true,
         "orderBy": true,
-        "orderByColumn": "updatedAt"
+        "orderByColumn": "updatedAt",
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "notEqual",
+              "keyValue": "deleted"
+            }
+          ]
+        }
       },
       "id": "06ad7774-bcbe-4664-9b67-37c1528d6a5d",
       "name": "Goals Read",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        960,
-        1872
-      ]
+      "position": [960, 1872]
     },
     {
       "parameters": {
@@ -551,16 +505,23 @@
         },
         "returnAll": true,
         "orderBy": true,
-        "orderByColumn": "updatedAt"
+        "orderByColumn": "updatedAt",
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "notEqual",
+              "keyValue": "deleted"
+            }
+          ]
+        }
       },
       "id": "73c0ff2a-1dd7-4909-9f8b-bbc7a664e904",
       "name": "Habits Read",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1184,
-        1872
-      ]
+      "position": [1184, 1872]
     },
     {
       "parameters": {
@@ -576,10 +537,7 @@
       "name": "Journal Read",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1408,
-        1872
-      ]
+      "position": [1408, 1872]
     },
     {
       "parameters": {
@@ -591,16 +549,23 @@
         },
         "returnAll": true,
         "orderBy": true,
-        "orderByColumn": "updatedAt"
+        "orderByColumn": "updatedAt",
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "notEqual",
+              "keyValue": "deleted"
+            }
+          ]
+        }
       },
       "id": "40f7394f-b115-4a7b-a098-e2fa9d190f63",
       "name": "Reminder State Read",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1632,
-        1872
-      ]
+      "position": [1632, 1872]
     },
     {
       "parameters": {
@@ -734,10 +699,7 @@
       "name": "Goals Upsert",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        960,
-        2112
-      ]
+      "position": [960, 2112]
     },
     {
       "parameters": {
@@ -853,10 +815,7 @@
       "name": "Habits Upsert",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1184,
-        2112
-      ]
+      "position": [1184, 2112]
     },
     {
       "parameters": {
@@ -968,10 +927,7 @@
       "name": "Journal Upsert",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1408,
-        2112
-      ]
+      "position": [1408, 2112]
     },
     {
       "parameters": {
@@ -1094,10 +1050,7 @@
       "name": "Reminder State Upsert",
       "type": "n8n-nodes-base.dataTableTool",
       "typeVersion": 1.1,
-      "position": [
-        1616,
-        2096
-      ]
+      "position": [1616, 2096]
     },
     {
       "parameters": {
@@ -1107,10 +1060,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [
-        928,
-        0
-      ]
+      "position": [928, 0]
     },
     {
       "parameters": {
@@ -1127,10 +1077,7 @@
       "name": "Morning Briefing Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [
-        0,
-        272
-      ]
+      "position": [0, 272]
     },
     {
       "parameters": {
@@ -1145,10 +1092,7 @@
       "name": "Morning Briefing Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        608,
-        288
-      ]
+      "position": [608, 288]
     },
     {
       "parameters": {
@@ -1165,10 +1109,7 @@
       "name": "Evening Planning Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [
-        0,
-        528
-      ]
+      "position": [0, 528]
     },
     {
       "parameters": {
@@ -1183,10 +1124,7 @@
       "name": "Evening Planning Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        608,
-        528
-      ]
+      "position": [608, 528]
     },
     {
       "parameters": {
@@ -1202,10 +1140,7 @@
       "name": "Hourly Reminder Escalation Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [
-        0,
-        784
-      ]
+      "position": [0, 784]
     },
     {
       "parameters": {
@@ -1220,10 +1155,7 @@
       "name": "Reminder Escalation Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        608,
-        784
-      ]
+      "position": [608, 784]
     },
     {
       "parameters": {
@@ -1240,10 +1172,7 @@
       "name": "Weekly Review Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "position": [
-        0,
-        1040
-      ]
+      "position": [0, 1040]
     },
     {
       "parameters": {
@@ -1258,10 +1187,51 @@
       "name": "Weekly Review Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        608,
-        1040
-      ]
+      "position": [608, 1040]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ .OWNER_ID }}",
+        "text": "={{ .output }}",
+        "additionalFields": {}
+      },
+      "id": "aae2f73d-881e-457e-a464-7c6e9a33693a",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [1000, 500]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutes": 30
+            }
+          ]
+        }
+      },
+      "id": "7dde862b-b4c0-4022-b0aa-345570ca0054",
+      "name": "Data Sync Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 100]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Синхронизируй данные: прочитай текущие события Google Calendar и задачи из Google Tasks, затем обнови таблицы assistant_goals, assistant_habits, assistant_journal и assistant_reminder_state при необходимости. Не пиши ничего в ответ, если нет критичных изменений.",
+        "options": {
+          "systemMessage": "Ты модуль фоновой синхронизации данных. Периодически обновляй внутренние таблицы n8n (Goals, Habits, Journal) на основе свежих данных из Google Calendar и Google Tasks.",
+          "maxIterations": 10
+        }
+      },
+      "id": "baa6f7b1-7271-4bb8-b1f2-22aebcfc9701",
+      "name": "Data Sync Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [600, 100]
     }
   ],
   "pinData": {},
@@ -1313,6 +1283,11 @@
           },
           {
             "node": "Weekly Review Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -1405,6 +1380,11 @@
             "node": "Weekly Review Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1484,6 +1464,11 @@
             "node": "Weekly Review Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1542,6 +1527,11 @@
             "node": "Weekly Review Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1566,6 +1556,11 @@
           },
           {
             "node": "Weekly Review Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -1599,6 +1594,11 @@
             "node": "Weekly Review Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1618,6 +1618,11 @@
           },
           {
             "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -1725,6 +1730,11 @@
             "node": "Weekly Review Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1739,6 +1749,11 @@
           },
           {
             "node": "Evening Planning Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -1772,6 +1787,11 @@
             "node": "Weekly Review Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1791,6 +1811,11 @@
           },
           {
             "node": "Reminder Escalation Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Data Sync Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -1840,15 +1865,71 @@
           }
         ]
       ]
+    },
+    "Morning Briefing Agent": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evening Planning Agent": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reminder Escalation Agent": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Review Agent": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Sync Trigger": {
+      "main": [
+        [
+          {
+            "node": "Data Sync Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "timezone": "Europe/Saratov"
   },
-  "versionId": "1d264cee-a3dc-4832-9007-d84c1531cb90",
+  "versionId": "0b8b358c-c9b6-40bc-b393-30f8423426fd",
   "meta": {
     "aiBuilderAssisted": true,
     "instanceId": "cd226dd46f97bcaa4b98e0b0c21f38ee6b8dc7fbe81e38fd89cb3e9b07971ac0"
