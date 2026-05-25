@@ -1,16 +1,17 @@
-import telebot
-from groq import Groq
-from os import path
-import os
 import glob
+import json
+import os
+import time
+import uuid
+import warnings
+from os import path
+from urllib.parse import urlparse, urlunparse
+
 import ffmpeg
 import requests
-import uuid
-import json
-import time
-import warnings
-from urllib.parse import urlparse, urlunparse
+import telebot
 from dotenv import load_dotenv
+from groq import Groq
 
 load_dotenv()
 
@@ -26,8 +27,8 @@ bot_token = os.getenv("BOT_TELEGRAM_API")
 if not bot_token:
     raise ValueError("Не задан BOT_TELEGRAM_API в .env")
 
-bot = telebot.TeleBot(bot_token) # API Токен бота в телеграмме
-webhook_n8n = os.getenv("WEBHOOK_N8N") # Вставьте сюда URL вашего webhook из n8n
+bot = telebot.TeleBot(bot_token)  # API Токен бота в телеграмме
+webhook_n8n = os.getenv("WEBHOOK_N8N")  # Вставьте сюда URL вашего webhook из n8n
 owner_id_raw = os.getenv("OWNER_ID")
 N8N_CONNECT_TIMEOUT = float(os.getenv("N8N_CONNECT_TIMEOUT", "10"))
 N8N_READ_TIMEOUT = float(os.getenv("N8N_READ_TIMEOUT", "120"))
@@ -52,6 +53,14 @@ def _load_sessions() -> None:
         try:
             with open(SESSIONS_FILE, "r", encoding="utf-8") as f:
                 user_sessions = json.load(f)
+            # Migration
+            for uid, data in user_sessions.items():
+                if "history" in data:
+                    new_sessions = {}
+                    for s in data["history"]:
+                        new_sessions[s] = {"title": "Без названия", "messages": 0}
+                    data["sessions"] = new_sessions
+                    del data["history"]
             print(f"Загружены сессии для {len(user_sessions)} пользователей")
         except (json.JSONDecodeError, IOError) as e:
             print(f"Ошибка загрузки сессий: {e}. Начнём с чистого листа.")
@@ -75,26 +84,56 @@ def _generate_session_id() -> str:
     return str(uuid.uuid4())
 
 
-def _ensure_current_session(user_id: int) -> str:
+def _generate_title(text: str) -> str:
+    try:
+        client = Groq()
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Опиши этот запрос в 2-4 словах, очень кратко, без кавычек и точек: {text}",
+                }
+            ],
+            max_tokens=15,
+            temperature=0.3,
+        )
+        return response.choices[0].message.content.strip().replace('"', "")
+    except Exception:
+        words = text.split()
+        return " ".join(words[:4]) + "..." if len(words) > 4 else text
+
+
+def _ensure_current_session(user_id: int, initial_text: str = "") -> str:
     user_id_str = str(user_id)
     session_state = user_sessions.get(user_id_str)
-    if session_state:
+    if (
+        session_state
+        and "current" in session_state
+        and session_state["current"] in session_state.get("sessions", {})
+    ):
         return session_state["current"]
 
     new_session = _generate_session_id()
-    user_sessions[user_id_str] = {
-        "current": new_session,
-        "history": [new_session],
+    title = _generate_title(initial_text) if initial_text else "Без названия"
+    if not session_state:
+        user_sessions[user_id_str] = {"current": new_session, "sessions": {}}
+    user_sessions[user_id_str]["sessions"][new_session] = {
+        "title": title,
+        "messages": 0,
     }
+    user_sessions[user_id_str]["current"] = new_session
     _save_sessions()
     return new_session
 
 
 def _create_new_session(user_id: int) -> str:
     new_session = _generate_session_id()
-    session_state = user_sessions.setdefault(str(user_id), {"current": new_session, "history": []})
+    session_state = user_sessions.setdefault(
+        str(user_id), {"current": new_session, "sessions": {}}
+    )
+    session_state["sessions"][new_session] = {"title": "Без названия", "messages": 0}
     session_state["current"] = new_session
-    session_state["history"].append(new_session)
     _save_sessions()
     return new_session
 
@@ -102,10 +141,10 @@ def _create_new_session(user_id: int) -> str:
 def _set_current_session(user_id: int, requested_session: str) -> bool:
     user_id_str = str(user_id)
     session_state = user_sessions.get(user_id_str)
-    if not session_state:
+    if not session_state or "sessions" not in session_state:
         return False
 
-    if requested_session not in session_state["history"]:
+    if requested_session not in session_state["sessions"]:
         return False
 
     session_state["current"] = requested_session
@@ -113,12 +152,44 @@ def _set_current_session(user_id: int, requested_session: str) -> bool:
     return True
 
 
-def _get_user_sessions(user_id: int) -> list:
+def _delete_session(user_id: int, requested_session: str) -> bool:
+    user_id_str = str(user_id)
+    session_state = user_sessions.get(user_id_str)
+    if not session_state or "sessions" not in session_state:
+        return False
+
+    if requested_session not in session_state["sessions"]:
+        return False
+
+    del session_state["sessions"][requested_session]
+    if session_state["current"] == requested_session:
+        if session_state["sessions"]:
+            session_state["current"] = list(session_state["sessions"].keys())[-1]
+        else:
+            session_state["current"] = ""
+    _save_sessions()
+    return True
+
+
+def _increment_message_count(user_id: int, session_id: str) -> None:
+    user_id_str = str(user_id)
+    session_state = user_sessions.get(user_id_str)
+    if (
+        session_state
+        and "sessions" in session_state
+        and session_id in session_state["sessions"]
+    ):
+        session_state["sessions"][session_id]["messages"] += 1
+        # Update title if it's "Без названия"
+        _save_sessions()
+
+
+def _get_user_sessions(user_id: int) -> dict:
     user_id_str = str(user_id)
     session_state = user_sessions.get(user_id_str)
     if not session_state:
-        return []
-    return session_state["history"]
+        return {}
+    return session_state.get("sessions", {})
 
 
 def _http_fallback_url(url: str) -> str:
@@ -139,7 +210,10 @@ def _post_n8n(url: str, data: dict) -> dict:
             )
             response.raise_for_status()
             return response.json()
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as timeout_err:
+        except (
+            requests.exceptions.ReadTimeout,
+            requests.exceptions.ConnectTimeout,
+        ) as timeout_err:
             if attempt == total_attempts:
                 raise timeout_err
             print(
@@ -150,11 +224,7 @@ def _post_n8n(url: str, data: dict) -> dict:
 
 
 def ai_response(user_message: str, session_id: str) -> str:
-    data = {    
-        "action": "sendMessage",
-        "chatInput": user_message,
-        "sessionId": session_id 
-    }
+    data = {"action": "sendMessage", "chatInput": user_message, "sessionId": session_id}
     try:
         result = _post_n8n(webhook_n8n, data)
         output = result.get("output") if isinstance(result, dict) else None
@@ -166,7 +236,9 @@ def ai_response(user_message: str, session_id: str) -> str:
 
     except requests.exceptions.SSLError as ssl_err:
         # Частый кейс: endpoint работает по HTTP, а в .env указан HTTPS.
-        if "WRONG_VERSION_NUMBER" in str(ssl_err).upper() and webhook_n8n.lower().startswith("https://"):
+        if "WRONG_VERSION_NUMBER" in str(
+            ssl_err
+        ).upper() and webhook_n8n.lower().startswith("https://"):
             fallback_url = _http_fallback_url(webhook_n8n)
             try:
                 result = _post_n8n(fallback_url, data)
@@ -193,11 +265,19 @@ def ai_response(user_message: str, session_id: str) -> str:
         print(f"Ошибка запроса к n8n: {e}")
         return "Извините, произошла ошибка при обработке запроса."
 
+
 def audio_response(text: str) -> None:
     from speakerpy.lib_speak import Speaker as sp
 
     speaker = sp(model_id="v5_1_ru", language="ru", speaker="aidar", device="cpu")
-    speaker.to_mp3(text=str(text), name_text="response", sample_rate=48000, audio_dir=".", put_accent=True, put_yo=True)
+    speaker.to_mp3(
+        text=str(text),
+        name_text="response",
+        sample_rate=48000,
+        audio_dir=".",
+        put_accent=True,
+        put_yo=True,
+    )
 
     # Найти сгенерированный файл (имя содержит хеш: out_response<hash>.mp3)
     mp3_files = glob.glob("out_response*.mp3")
@@ -205,10 +285,11 @@ def audio_response(text: str) -> None:
         raise FileNotFoundError("Сгенерированный MP3 файл не найден")
     mp3_file = mp3_files[0]
 
-    ffmpeg.input(mp3_file).output('output.ogg', format="ogg").overwrite_output().run()
+    ffmpeg.input(mp3_file).output("output.ogg", format="ogg").overwrite_output().run()
     os.remove(mp3_file)
 
-@bot.message_handler(content_types=['text'])
+
+@bot.message_handler(content_types=["text"])
 def text_processing(message) -> None:
     if message.from_user.id != OWNER_ID:
         return
@@ -229,6 +310,26 @@ def text_processing(message) -> None:
         )
         return
 
+    if command in {"/del_session", "/rmsession"}:
+        if not command_arg:
+            bot.send_message(
+                message.from_user.id,
+                "Использование: /rmsession <session_id>",
+            )
+            return
+
+        if _delete_session(message.from_user.id, command_arg):
+            bot.send_message(
+                message.from_user.id,
+                f"Сессия {command_arg} удалена.",
+            )
+        else:
+            bot.send_message(
+                message.from_user.id,
+                "Сессия не найдена.",
+            )
+        return
+
     if command == "/sessions":
         sessions = _get_user_sessions(message.from_user.id)
         if not sessions:
@@ -237,20 +338,28 @@ def text_processing(message) -> None:
 
         current_session = _ensure_current_session(message.from_user.id)
         formatted = []
-        for session in sessions[-10:]:
-            marker = " (активна)" if session == current_session else ""
-            formatted.append(f"- {session}{marker}")
+        for session_id, meta in list(sessions.items())[-10:]:
+            marker = " (активна)" if session_id == current_session else ""
+            title = meta.get("title", "Без названия")
+            messages = meta.get("messages", 0)
+            formatted.append(
+                f"- {title} ({messages} сообщ.)\n  ID: {session_id}{marker}"
+            )
         bot.send_message(
             message.from_user.id,
-            "Последние сессии:\n" + "\n".join(formatted),
+            "Последние сессии:\n\n" + "\n\n".join(formatted),
         )
         return
 
     if command == "/session":
         current_session = _ensure_current_session(message.from_user.id)
+        sessions = _get_user_sessions(message.from_user.id)
+        meta = sessions.get(current_session, {})
+        title = meta.get("title", "Без названия")
+        messages = meta.get("messages", 0)
         bot.send_message(
             message.from_user.id,
-            f"Текущая сессия:\n{current_session}",
+            f"Текущая сессия:\nНазвание: {title} ({messages} сообщ.)\nID: {current_session}",
         )
         return
 
@@ -282,19 +391,32 @@ def text_processing(message) -> None:
             "/newsession или /new — создать новую сессию\n"
             "/session — показать активную сессию\n"
             "/sessions — список последних сессий\n"
-            "/switch <session_id> — переключиться на сессию",
+            "/switch <session_id> — переключиться на сессию\n"
+            "/rmsession <session_id> — удалить сессию",
         )
         return
 
-    current_session = _ensure_current_session(message.from_user.id)
+    current_session = _ensure_current_session(message.from_user.id, initial_text=text)
+    _increment_message_count(message.from_user.id, current_session)
+
+    # Check if we should update the title
+    sessions = _get_user_sessions(message.from_user.id)
+    if (
+        current_session in sessions
+        and sessions[current_session].get("title") == "Без названия"
+    ):
+        sessions[current_session]["title"] = _generate_title(text)
+        _save_sessions()
+
     ai_reply_text = ai_response(text, current_session)
     bot.send_message(message.from_user.id, ai_reply_text)
     audio_response(ai_reply_text)
-    with open('output.ogg', 'rb') as audio:
+    with open("output.ogg", "rb") as audio:
         bot.send_voice(message.from_user.id, audio)
-    os.remove('output.ogg')
+    os.remove("output.ogg")
 
-@bot.message_handler(content_types=['voice'])
+
+@bot.message_handler(content_types=["voice"])
 def audio_processing(message):
     if message.from_user.id != OWNER_ID:
         return
@@ -306,10 +428,12 @@ def audio_processing(message):
     print(file_info)
     downloaded_file = bot.download_file(file_info.file_path)
 
-    with open('input.ogg', 'wb') as file:
+    with open("input.ogg", "wb") as file:
         file.write(downloaded_file)
-    ffmpeg.input('input.ogg').output('output.wav', format="wav").overwrite_output().run()
-    audio_file = path.join(path.dirname(path.realpath(__file__)), 'output.wav')
+    ffmpeg.input("input.ogg").output(
+        "output.wav", format="wav"
+    ).overwrite_output().run()
+    audio_file = path.join(path.dirname(path.realpath(__file__)), "output.wav")
 
     client = Groq()
 
@@ -320,18 +444,44 @@ def audio_processing(message):
             temperature=0,
             response_format="verbose_json",
         )
-        recognized_text = transcription.text
+        recognized_text = transcription.text.strip()
 
-    os.remove('input.ogg')
-    os.remove('output.wav')
+    os.remove("input.ogg")
+    os.remove("output.wav")
+
+    if not recognized_text:
+        fallback_msg = "Голосовое сообщение не содержит разборчивой речи. Пожалуйста, повторите команду четче."
+        bot.send_message(message.from_user.id, fallback_msg)
+        audio_response(fallback_msg)
+        try:
+            with open("output.ogg", "rb") as audio:
+                bot.send_voice(message.from_user.id, audio)
+            os.remove("output.ogg")
+        except Exception as e:
+            print(f"Failed to send fallback audio: {e}")
+        return
 
     # Отправляем распознанный текст через AI и возвращаем ответ пользователю
-    current_session = _ensure_current_session(message.from_user.id)
+    current_session = _ensure_current_session(
+        message.from_user.id, initial_text=recognized_text
+    )
+    _increment_message_count(message.from_user.id, current_session)
+
+    # Check if we should update the title
+    sessions = _get_user_sessions(message.from_user.id)
+    if (
+        current_session in sessions
+        and sessions[current_session].get("title") == "Без названия"
+    ):
+        sessions[current_session]["title"] = _generate_title(recognized_text)
+        _save_sessions()
+
     ai_reply_text = ai_response(recognized_text, current_session)
     bot.send_message(message.from_user.id, ai_reply_text)
     audio_response(ai_reply_text)
-    with open('output.ogg', 'rb') as audio:
+    with open("output.ogg", "rb") as audio:
         bot.send_voice(message.from_user.id, audio)
-    os.remove('output.ogg')
+    os.remove("output.ogg")
+
 
 bot.polling(none_stop=True, interval=0)
