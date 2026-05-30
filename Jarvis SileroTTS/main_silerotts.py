@@ -1,6 +1,7 @@
 import speech_recognition as sr
 import random
 import sys
+import ast
 from configparser import ConfigParser
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1' #убираем вывод от pygame
@@ -12,6 +13,7 @@ import openwakeword
 from openwakeword.model import Model
 import pyaudio as pu
 import numpy as np
+from groq_stt import GroqSpeechRecognizer, UnintelligibleSpeechError
 
 class MicrophoneManager:
     def __init__(self):
@@ -58,6 +60,23 @@ def request_processing(text): #Функция обработки запроса 
     print(response['output'])
     return response['output']
 
+def normalize_command(text: str) -> str:
+    return text.lower().strip().translate(str.maketrans("", "", "!?.,"))
+
+def parse_commands(raw_commands: str) -> set[str]:
+    try:
+        commands = ast.literal_eval(raw_commands)
+    except (ValueError, SyntaxError):
+        commands = [raw_commands]
+
+    if isinstance(commands, str):
+        commands = [commands]
+
+    return {normalize_command(str(command)) for command in commands}
+
+def get_config_value(section: str, option: str, default: str = "") -> str:
+    return config.get(section, option, fallback=default).strip()
+
 def command_processing(): 
     try:
         while True:
@@ -66,8 +85,8 @@ def command_processing():
                     print("Слушаю...")
                     recognizer.adjust_for_ambient_noise(source=mic_manager.mic, duration=0.65)
                     audio = recognizer.listen(mic_manager.mic, timeout=timeout)
-                    text = recognizer.recognize_google(audio, language="ru")
-                    text_for_cmd = text.lower().strip().replace('!', '').replace('.', '').replace('?', '').replace(',', '')
+                    text = speech_recognizer.recognize(audio)
+                    text_for_cmd = normalize_command(text)
                     print(f"Вы сказали: {text}")
                     handled = False
 
@@ -88,7 +107,7 @@ def command_processing():
                 except sr.WaitTimeoutError:
                     print("Вы где? Жду команды...")
                     return
-                except sr.UnknownValueError:
+                except UnintelligibleSpeechError:
                     print("Речь не распознана")
                     continue
 
@@ -150,7 +169,7 @@ if __name__ == "__main__":
     with open("settings.ini", "r", encoding="utf-8") as f:
         config.read_file(f)
 
-    cmd_exit = config["Commands"]["Cmd_Exit"]
+    cmd_exit = parse_commands(config["Commands"]["Cmd_Exit"])
     #Speech Recognition
     timeout = int(config["Speech"]["TimeoutSpeechRecognition"]) #через сколько секунд снова обращаться к wake word после отсуствия звуков
     speaker = sp(model_id="v3_1_ru", language="ru", speaker="aidar", device="cuda")
@@ -159,6 +178,18 @@ if __name__ == "__main__":
     recognizer = sr.Recognizer()
     recognizer.pause_threshold = 1 #фраза будет завершённой после этого таймаута в сек
 
+    config_changed = False
+    groq_api_key = get_config_value("Settings", "groq_api_key")
+    if not groq_api_key and not environ.get("GROQ_API_KEY"):
+        groq_api_key = input("Введите Groq API key (можно оставить пустым, если задан GROQ_API_KEY): ").strip()
+        if groq_api_key:
+            config['Settings']['groq_api_key'] = groq_api_key
+            config_changed = True
+        else:
+            print("Groq API key не задан. Распознавание речи потребует переменную окружения GROQ_API_KEY.")
+
+    speech_recognizer = GroqSpeechRecognizer(api_key=groq_api_key or None)
+
     if not(config['Settings']['webhook_n8n'] and config['Settings']['OpenWakeWord_download_models']):
         session_id = str(uuid.uuid4())
     #Сохраняем в ini:
@@ -166,6 +197,7 @@ if __name__ == "__main__":
         openwakeword.utils.download_models(["hey jarvis"])
         config['Settings']['webhook_n8n'] = webhook_n8n
         config['Settings']['OpenWakeWord_download_models'] = "downloaded"
+        config_changed = True
 
         # Записываем изменения в файл
         with open('settings.ini', 'w', encoding='utf-8') as configfile:
@@ -175,4 +207,7 @@ if __name__ == "__main__":
     else:
         webhook_n8n = config['Settings']['webhook_n8n']
         session_id = str(uuid.uuid4())
+        if config_changed:
+            with open('settings.ini', 'w', encoding='utf-8') as configfile:
+                config.write(configfile)
         main()
