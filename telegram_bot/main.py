@@ -77,7 +77,7 @@ class AppConfig:
             webhook_n8n=webhook_n8n,
             owner_id=owner_id,
             n8n_connect_timeout=float(_get_env("N8N_CONNECT_TIMEOUT", "10")),
-            n8n_read_timeout=float(_get_env("N8N_READ_TIMEOUT", "300")),
+            n8n_read_timeout=float(_get_env("N8N_READ_TIMEOUT", "420")),
             n8n_retry_attempts=int(_get_env("N8N_RETRY_ATTEMPTS", "2")),
             n8n_retry_delay_seconds=float(
                 _get_env("N8N_RETRY_DELAY_SECONDS", "1.5")
