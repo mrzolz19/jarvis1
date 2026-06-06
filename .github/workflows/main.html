@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Голосовой ассистент в Telegram — Индивидуальный IT-проект</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #04091A;
+      --surface:    #0B1628;
+      --surface2:   #112038;
+      --surface3:   #172844;
+      --border:     #1E3A5F;
+      --border2:    #2A4D7A;
+      --accent:     #00CFFF;
+      --accent-dim: #0080B3;
+      --accent-glow:rgba(0,207,255,0.28);
+      --purple:     #8B5CF6;
+      --purple-glow:rgba(139,92,246,0.25);
+      --green:      #10B981;
+      --green-glow: rgba(16,185,129,0.2);
+      --amber:      #F59E0B;
+      --red:        #EF4444;
+      --text:       #E8F4FF;
+      --text-muted: #7BA0C4;
+      --text-dim:   #4A7090;
+      --font-mono:  'Space Mono', 'Fira Code', monospace;
+      --font-ui:    'Inter', system-ui, sans-serif;
+      --dur:        420ms;
+      --ease:       cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── PROGRESS BAR ── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent), var(--purple));
+      box-shadow: 0 0 10px var(--accent-glow);
+      transition: width 0.4s var(--ease);
+      z-index: 100;
+    }
+
+    /* ── HEX GRID OVERLAY ── */
+    .hex-bg {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34z' fill='none' stroke='%2300cfff' stroke-width='1'/%3E%3Cpath d='M28 100L0 84V50l28-16 28 16v34z' fill='none' stroke='%2300cfff' stroke-width='1'/%3E%3C/svg%3E");
+      background-size: 56px 100px;
+    }
+
+    /* ── CANVAS PARTICLES ── */
+    #particles-canvas {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 1;
+    }
+
+    /* ── SCANLINES ── */
+    .scanlines {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 2;
+      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+      animation: scanMove 10s linear infinite;
+    }
+    @keyframes scanMove { 0%{background-position:0 0} 100%{background-position:0 200px} }
+
+    /* ── SLIDE CONTAINER ── */
+    #presentation {
+      position: relative; width: 100%; height: 100%;
+      overflow: hidden; z-index: 3;
+    }
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 56px 72px 72px;
+      opacity: 0; transform: translateX(100%);
+      transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+      pointer-events: none;
+      overflow-y: auto;
+    }
+    .slide.active   { opacity:1; transform:translateX(0);    pointer-events:all; }
+    .slide.exit-left  { opacity:0; transform:translateX(-100%); }
+    .slide.enter-right{ opacity:0; transform:translateX(100%); }
+    .slide.enter-left { opacity:0; transform:translateX(-100%); }
+    .slide.exit-right { opacity:0; transform:translateX(100%); }
+
+    /* ── NAVIGATION ── */
+    .nav-btn {
+      position: fixed; top: 50%; transform: translateY(-50%);
+      background: rgba(11,22,40,0.85); border: 1px solid var(--border);
+      color: var(--text); width: 44px; height: 60px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 50; border-radius: 8px; font-size: 18px;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      backdrop-filter: blur(12px);
+    }
+    .nav-btn:hover { background:rgba(0,207,255,0.12); border-color:var(--accent); box-shadow:0 0 14px var(--accent-glow); }
+    #btn-prev { left:14px; } #btn-next { right:14px; }
+
+    /* ── DOTS ── */
+    #dots {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px; z-index: 50;
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--border2); cursor: pointer;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s, width 0.2s;
+    }
+    .dot.active { background:var(--accent); transform:scale(1.5); box-shadow:0 0 8px var(--accent); width:18px; border-radius:3px; }
+
+    /* ── COUNTER ── */
+    #counter {
+      position: fixed; top: 14px; right: 18px;
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); z-index: 50;
+    }
+
+    /* ── SCROLL TOGGLE ── */
+    #scroll-toggle {
+      position: fixed; top: 12px; right: 86px;
+      background: rgba(11,22,40,0.8); border: 1px solid var(--border);
+      color: var(--text-dim); padding: 4px 10px; border-radius: 6px;
+      font-family: var(--font-mono); font-size: 10px; cursor: pointer; z-index: 50;
+      transition: border-color 0.2s, color 0.2s; backdrop-filter: blur(8px);
+    }
+    #scroll-toggle:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* ── SCROLL MODE ── */
+    body.scroll-mode { overflow: auto; }
+    body.scroll-mode #presentation { position:relative; height:auto; overflow:visible; }
+    body.scroll-mode .slide { position:relative; opacity:1; transform:none; min-height:100vh; pointer-events:all; }
+    body.scroll-mode .nav-btn, body.scroll-mode #dots { display:none; }
+
+    /* ── TYPOGRAPHY ── */
+    .slide-title {
+      font-family: var(--font-mono); font-size: clamp(1.2rem,2.4vw,1.9rem); font-weight: 700;
+      color: var(--text); margin-bottom: 2rem; text-align: center; letter-spacing: -0.3px;
+      position: relative; line-height: 1.2;
+    }
+    .slide-title::after {
+      content: ''; display: block; width: 48px; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      box-shadow: 0 0 10px var(--accent); margin: 0.5rem auto 0; border-radius: 2px;
+    }
+    .slide-title .accent { color: var(--accent); }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px;
+    }
+    .badge-blue  { color:var(--accent);  border:1px solid rgba(0,207,255,0.35);  background:rgba(0,207,255,0.07); }
+    .badge-purple{ color:var(--purple);  border:1px solid rgba(139,92,246,0.35); background:rgba(139,92,246,0.07); }
+    .badge-green { color:var(--green);   border:1px solid rgba(16,185,129,0.35); background:rgba(16,185,129,0.07); }
+    .badge-amber { color:var(--amber);   border:1px solid rgba(245,158,11,0.35); background:rgba(245,158,11,0.07); }
+    .badge-red   { color:var(--red);     border:1px solid rgba(239,68,68,0.35);  background:rgba(239,68,68,0.07); }
+
+    /* ── CARD BASE ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.4rem;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .card:hover { border-color:var(--border2); box-shadow:0 0 20px rgba(0,207,255,0.08); }
+
+    /* ── STAGGER ── */
+    .stagger-item {
+      opacity: 0; transform: translateY(14px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .stagger-item.visible { opacity:1; transform:translateY(0); }
+
+    /* ── LABEL ── */
+    .label {
+      font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem;
+    }
+    .label.purple { color: var(--purple); }
+    .label.green  { color: var(--green); }
+    .label.amber  { color: var(--amber); }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 1 — TITLE
+    ══════════════════════════════════════════════════ */
+    #slide-1 { background: radial-gradient(ellipse at 25% 35%, rgba(0,207,255,0.06) 0%,transparent 55%), radial-gradient(ellipse at 75% 70%, rgba(139,92,246,0.05) 0%,transparent 55%), var(--bg); }
+    .title-wrap {
+      text-align: center; max-width: 900px; width: 100%;
+      padding: 3rem 4rem; position: relative;
+    }
+    .title-corner {
+      position: absolute; width: 18px; height: 18px;
+      border-color: var(--accent); border-style: solid; opacity: 0.6;
+    }
+    .title-corner.tl { top:0;bottom:auto;left:0;right:auto; border-width:2px 0 0 2px; }
+    .title-corner.tr { top:0;bottom:auto;right:0;left:auto; border-width:2px 2px 0 0; }
+    .title-corner.bl { bottom:0;top:auto;left:0;right:auto; border-width:0 0 2px 2px; }
+    .title-corner.br { bottom:0;top:auto;right:0;left:auto; border-width:0 2px 2px 0; }
+
+    .title-tag {
+      font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1.5rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    }
+    .title-tag::before, .title-tag::after {
+      content: ''; flex: 1; max-width: 60px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent));
+    }
+    .title-tag::after { background: linear-gradient(270deg, transparent, var(--accent)); }
+
+    .main-title {
+      font-family: var(--font-mono); font-size: clamp(1.6rem,3.2vw,2.7rem);
+      font-weight: 700; color: var(--text); line-height: 1.18;
+      margin-bottom: 0.8rem;
+      text-shadow: 0 0 30px rgba(0,207,255,0.3), 0 0 60px rgba(0,207,255,0.1);
+      letter-spacing: -1px;
+    }
+    .main-subtitle {
+      font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.4rem; line-height: 1.5;
+    }
+    .tech-row {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      justify-content: center; margin: 1.6rem 0;
+    }
+    .typing-cursor::after { content:'|'; color:var(--accent); animation:blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .meta-row {
+      display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-top: 1.6rem;
+    }
+    .meta-chip {
+      font-size: 0.83rem; color: var(--text-muted);
+      border: 1px solid var(--border); padding: 0.4rem 1rem; border-radius: 20px;
+      background: rgba(11,22,40,0.7);
+    }
+    .glow-orb {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      animation: orbPulse 4s ease-in-out infinite;
+    }
+    .glow-orb.blue  { width:400px;height:200px;background:radial-gradient(ellipse,rgba(0,207,255,0.12) 0%,transparent 70%); top:40%;left:50%;transform:translate(-50%,-50%); }
+    .glow-orb.purple{ width:300px;height:150px;background:radial-gradient(ellipse,rgba(139,92,246,0.09) 0%,transparent 70%); top:60%;left:60%; animation-delay:-2s; }
+    @keyframes orbPulse { 0%,100%{opacity:0.8;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)} }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 2 — АКТУАЛЬНОСТЬ
+    ══════════════════════════════════════════════════ */
+    #slide-2 .content-2col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;
+      width: 100%; max-width: 920px;
+    }
+    .problem-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.3rem;
+    }
+    .problem-icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+    .problem-title { font-family:var(--font-mono); font-size:0.88rem; font-weight:700; color:var(--text); margin-bottom:0.4rem; }
+    .problem-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.6; }
+    .relevance-quote {
+      grid-column: 1 / -1;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent); border-radius: 8px;
+      padding: 1rem 1.4rem; font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;
+    }
+    .relevance-quote strong { color: var(--accent); }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 3 — ЦЕЛЬ И ЗАДАЧИ
+    ══════════════════════════════════════════════════ */
+    #slide-3 .goal-wrap { width:100%; max-width:900px; }
+    .goal-main {
+      background: linear-gradient(135deg, rgba(0,207,255,0.08), rgba(139,92,246,0.06));
+      border: 1px solid rgba(0,207,255,0.3); border-radius: 12px;
+      padding: 1.3rem 1.6rem; margin-bottom: 1.2rem;
+    }
+    .goal-main-text { font-size:0.9rem; color:var(--text); line-height:1.65; }
+    .tasks-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .task-row {
+      display: flex; align-items: flex-start; gap: 0.7rem;
+      font-size: 0.83rem; color: var(--text); line-height: 1.5;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.7rem 0.9rem;
+      opacity: 0; transform: translateX(-16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .task-row.visible { opacity:1; transform:translateX(0); }
+    .task-num {
+      font-family: var(--font-mono); font-size: 0.68rem; color: var(--accent);
+      background: rgba(0,207,255,0.1); border: 1px solid rgba(0,207,255,0.25);
+      border-radius: 4px; padding: 0.1rem 0.4rem; flex-shrink: 0; margin-top: 1px;
+    }
+    .obj-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;
+    }
+    .obj-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.8rem 1.1rem; }
+    .obj-card-text { font-size:0.82rem; color:var(--text-muted); line-height:1.5; }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 4 — АРХИТЕКТУРА (два слоя)
+    ══════════════════════════════════════════════════ */
+    #slide-4 .arch-wrap { width:100%; max-width:920px; }
+    .two-layer {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;
+    }
+    .layer-card {
+      border-radius: 12px; padding: 1.3rem; border: 1px solid;
+      position: relative; overflow: hidden;
+    }
+    .layer-card.blue  { background:linear-gradient(135deg,rgba(0,207,255,0.07),rgba(0,207,255,0.03)); border-color:rgba(0,207,255,0.35); }
+    .layer-card.purple{ background:linear-gradient(135deg,rgba(139,92,246,0.07),rgba(139,92,246,0.03)); border-color:rgba(139,92,246,0.35); }
+    .layer-num {
+      font-family: var(--font-mono); font-size: 3rem; font-weight: 700;
+      position: absolute; top: 0.5rem; right: 1rem; opacity: 0.08; line-height: 1;
+    }
+    .layer-title { font-family:var(--font-mono); font-size:0.85rem; font-weight:700; color:var(--text); margin-bottom:0.2rem; }
+    .layer-sub   { font-size:0.72rem; color:var(--text-muted); margin-bottom:0.8rem; }
+    .layer-items { list-style:none; display:flex; flex-direction:column; gap:0.35rem; }
+    .layer-item  { display:flex; align-items:flex-start; gap:0.5rem; font-size:0.8rem; color:var(--text); line-height:1.45; }
+    .layer-dot   { flex-shrink:0; width:5px; height:5px; border-radius:50%; margin-top:5px; }
+    .layer-dot.blue   { background:var(--accent); box-shadow:0 0 6px var(--accent); }
+    .layer-dot.purple { background:var(--purple); box-shadow:0 0 6px var(--purple); }
+    .arch-flow-row {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.85rem 1.4rem;
+      font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap;
+    }
+    .flow-node {
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text);
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 6px; padding: 0.3rem 0.7rem; white-space: nowrap;
+    }
+    .flow-arrow { color: var(--accent); font-size: 1rem; }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 5 — СТЕК ТЕХНОЛОГИЙ
+    ══════════════════════════════════════════════════ */
+    #slide-5 .tech-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+      width: 100%; max-width: 920px;
+    }
+    .flip-card { height: 148px; perspective: 1000px; cursor: pointer; }
+    .flip-inner {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.4,0,0.2,1);
+    }
+    .flip-card:hover .flip-inner { transform: rotateY(180deg); }
+    .flip-front, .flip-back {
+      position: absolute; inset: 0; backface-visibility: hidden;
+      border-radius: 11px; padding: 1.2rem; border: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .flip-front { background: var(--surface); }
+    .flip-back {
+      background: linear-gradient(135deg, rgba(0,207,255,0.1), rgba(139,92,246,0.07));
+      border-color: rgba(0,207,255,0.35); transform: rotateY(180deg);
+    }
+    .tech-icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .tech-name { font-family:var(--font-mono); font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:0.2rem; }
+    .tech-cat  { font-size:0.68rem; color:var(--accent); letter-spacing:1.5px; text-transform:uppercase; }
+    .tech-desc { font-size:0.77rem; color:var(--text); line-height:1.5; }
+    .flip-hint { font-size:0.65rem; color:var(--text-dim); margin-top:0.5rem; }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 6 — МЕДИА-ШЛЮЗ
+    ══════════════════════════════════════════════════ */
+    #slide-6 .mw-wrap { width:100%; max-width:920px; }
+    .classes-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; margin-bottom: 1rem;
+    }
+    .class-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem;
+    }
+    .class-name { font-family:var(--font-mono); font-size:0.82rem; font-weight:700; color:var(--accent); margin-bottom:0.3rem; }
+    .class-role { font-size:0.72rem; color:var(--text-muted); margin-bottom:0.5rem; }
+    .class-detail { font-size:0.75rem; color:var(--text); line-height:1.5; }
+    .pipeline-strip {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.9rem 1.2rem; flex-wrap: wrap;
+    }
+    .pipe-step {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 7px; padding: 0.45rem 0.8rem;
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text);
+      text-align: center; white-space: nowrap;
+    }
+    .pipe-step .ps-sub { font-size:0.63rem; color:var(--text-dim); display:block; margin-top:1px; }
+    .pipe-arr { color:var(--accent); font-size:1rem; flex-shrink:0; }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 7 — КОГНИТИВНЫЙ ЦЕНТР
+    ══════════════════════════════════════════════════ */
+    #slide-7 .cc-wrap { width:100%; max-width:920px; }
+    .cc-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem; }
+    .cc-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 11px; padding: 1.2rem;
+    }
+    .cc-card-title { font-family:var(--font-mono); font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:0.5rem; }
+    .cc-items { list-style:none; display:flex; flex-direction:column; gap:0.35rem; }
+    .cc-item { display:flex; align-items:flex-start; gap:0.5rem; font-size:0.8rem; color:var(--text); line-height:1.45; }
+    .cc-dot { flex-shrink:0; width:5px; height:5px; background:var(--purple); border-radius:50%; margin-top:5px; box-shadow:0 0 5px var(--purple); }
+    .cron-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;
+    }
+    .cron-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.9rem 1.1rem;
+    }
+    .cron-time { font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:var(--amber); text-shadow:0 0 8px rgba(245,158,11,0.5); }
+    .cron-name { font-size:0.72rem; color:var(--accent); letter-spacing:1px; margin-top:0.1rem; }
+    .cron-desc { font-size:0.78rem; color:var(--text-muted); margin-top:0.4rem; line-height:1.5; }
+    .escalation-row {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 0.6rem;
+    }
+    .esc-card {
+      background: var(--surface); border-radius: 8px; padding: 0.8rem;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .esc-lv { font-family:var(--font-mono); font-size:1.4rem; font-weight:700; line-height:1; margin-bottom:0.25rem; }
+    .esc-lv.lv0 { color:var(--green); } .esc-lv.lv1 { color:var(--accent); }
+    .esc-lv.lv2 { color:var(--amber); } .esc-lv.lv3 { color:var(--red); }
+    .esc-label { font-size:0.68rem; color:var(--text-muted); line-height:1.4; }
+
+    /* ══════════════════════════════════════════════════
+       SLIDES 8–9 — CODE
+    ══════════════════════════════════════════════════ */
+    .code-wrap { width:100%; max-width:880px; }
+    .code-block {
+      background: #050D1A; border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 1rem;
+    }
+    .code-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1rem; background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-dot { width:11px; height:11px; border-radius:50%; }
+    .code-dot.r{background:#FF5F57} .code-dot.y{background:#FEBC2E} .code-dot.g{background:#28C840}
+    .code-filename { font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-left:0.4rem; }
+    pre { margin:0; padding:1.1rem 1.3rem; overflow-x:auto; font-family:var(--font-mono); font-size:0.79rem; line-height:1.7; color:#8BA7C7; }
+    code { font-family:inherit; }
+    .kw  {color:#C792EA} .str{color:#C3E88D} .cm{color:#3A5070}
+    .fn  {color:#82AAFF} .num{color:#F78C6C} .dec{color:#F07178}
+    .cls {color:#FFCB6B} .op {color:#89DDFF} .cmt{color:#546E7A;font-style:italic}
+    .code-note {
+      font-size:0.84rem; color:var(--text-muted); line-height:1.55;
+      padding: 0.8rem 1.1rem; background:var(--surface);
+      border:1px solid var(--border); border-left:3px solid var(--accent);
+      border-radius:8px;
+    }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 10 — ДЕМОНСТРАЦИЯ (3D COLLAGE)
+    ══════════════════════════════════════════════════ */
+    #slide-10 { padding: 46px 40px 62px; }
+    .collage-stage {
+      position: relative; width: 100%; height: 460px;
+      max-width: 960px; perspective: 1500px;
+      perspective-origin: 50% 50%; flex-shrink: 0;
+      overflow: visible;
+    }
+    /* Base card — width fixed, height auto from image aspect ratio */
+    .collage-card {
+      position: absolute; width: 215px; height: auto;
+      border-radius: 14px; overflow: hidden;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.75s cubic-bezier(0.34, 1.3, 0.64, 1);
+      transform-style: preserve-3d;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+      will-change: transform;
+      background: var(--surface2);
+    }
+    /* Active card — front, larger */
+    .collage-card[data-pos="0"] {
+      left: 50%; top: 50%;
+      transform: translateX(-50%) translateY(-50%) translateZ(200px);
+      width: 270px; height: auto;
+      z-index: 10; border-color: var(--accent);
+      box-shadow: 0 0 55px var(--accent-glow), 0 0 22px rgba(0,207,255,0.2), 0 32px 72px rgba(0,0,0,0.75);
+      filter: brightness(1.06);
+    }
+    /* Near sides */
+    .collage-card[data-pos="1"] {
+      left: 21%; top: 50%;
+      transform: translateX(-50%) translateY(-50%) translateZ(60px) rotateY(24deg);
+      z-index: 6; opacity: 0.9; border-color: var(--border2);
+    }
+    .collage-card[data-pos="2"] {
+      left: 79%; top: 50%;
+      transform: translateX(-50%) translateY(-50%) translateZ(60px) rotateY(-24deg);
+      z-index: 6; opacity: 0.9; border-color: var(--border2);
+    }
+    /* Far sides — compensate for perspective foreshortening */
+    .collage-card[data-pos="3"] {
+      left: 11%; top: 52%;
+      transform: translateX(-50%) translateY(-50%) translateZ(-80px) rotateY(38deg) scale(0.82);
+      z-index: 3; opacity: 0.55;
+    }
+    .collage-card[data-pos="4"] {
+      left: 89%; top: 52%;
+      transform: translateX(-50%) translateY(-50%) translateZ(-80px) rotateY(-38deg) scale(0.82);
+      z-index: 3; opacity: 0.55;
+    }
+    /* Behind — visible ghost */
+    .collage-card[data-pos="5"] {
+      left: 50%; top: 50%;
+      transform: translateX(-50%) translateY(-50%) translateZ(-230px) scale(0.65);
+      z-index: 1; opacity: 0.2;
+    }
+    /* Hidden stack — cards waiting in queue */
+    .collage-card[data-pos="6"],
+    .collage-card[data-pos="7"],
+    .collage-card[data-pos="8"],
+    .collage-card[data-pos="9"],
+    .collage-card[data-pos="10"] {
+      left: 50%; top: 50%;
+      transform: translateX(-50%) translateY(-50%) translateZ(-400px) scale(0.4);
+      z-index: 0; opacity: 0; pointer-events: none;
+    }
+    /* Image: fills card completely, natural aspect ratio — no crop, no bars */
+    .collage-card img {
+      width: 100%; height: auto;
+      display: block;
+    }
+    .collage-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 0.55rem 0.7rem;
+      background: linear-gradient(transparent, rgba(4,9,26,0.95));
+      font-size: 0.7rem; color: var(--text); pointer-events: none;
+      text-align: center;
+    }
+    .collage-label .cl-active { color: var(--accent); font-weight: 600; }
+    .collage-dots {
+      display: flex; gap: 8px; justify-content: center;
+      margin-top: 0.8rem; flex-shrink: 0;
+    }
+    .collage-dot {
+      width: 28px; height: 4px; border-radius: 2px;
+      background: var(--border2); cursor: pointer;
+      transition: background 0.3s, width 0.3s;
+    }
+    .collage-dot.active { background: var(--accent); width: 44px; box-shadow: 0 0 8px var(--accent); }
+
+    /* ── Global 3D tilt cards ── */
+    .tilt3d {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transform-style: preserve-3d;
+    }
+
+    /* ── Floating animation ── */
+    @keyframes floatY {
+      0%,100% { transform: translateY(0px); }
+      50%      { transform: translateY(-6px); }
+    }
+    .float-anim { animation: floatY 3.5s ease-in-out infinite; }
+    .float-anim:nth-child(2) { animation-delay: -1.2s; }
+    .float-anim:nth-child(3) { animation-delay: -2.4s; }
+
+    /* ── Shimmer glow on front card ── */
+    @keyframes shimmerBorder {
+      0%,100% { box-shadow: 0 0 55px var(--accent-glow), 0 0 22px rgba(0,207,255,0.2), 0 32px 72px rgba(0,0,0,0.75); }
+      50%      { box-shadow: 0 0 75px rgba(0,207,255,0.55), 0 0 38px rgba(0,207,255,0.38), 0 32px 72px rgba(0,0,0,0.75); }
+    }
+    .collage-card[data-pos="0"] { animation: shimmerBorder 2.5s ease-in-out infinite; }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 11 — СЦЕНАРИИ ТЕСТИРОВАНИЯ
+    ══════════════════════════════════════════════════ */
+    #slide-11 .scenarios-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem;
+      width: 100%; max-width: 920px;
+    }
+    .scenario-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 11px; padding: 1.2rem;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .scenario-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(0,0,0,0.3),0 0 14px rgba(0,207,255,0.08); }
+    .sc-num { font-family:var(--font-mono); font-size:0.65rem; color:var(--accent); letter-spacing:2px; text-transform:uppercase; margin-bottom:0.4rem; }
+    .sc-title { font-family:var(--font-mono); font-size:0.83rem; font-weight:700; color:var(--text); margin-bottom:0.5rem; }
+    .sc-desc { font-size:0.78rem; color:var(--text-muted); line-height:1.55; }
+    .sc-result {
+      margin-top: 0.6rem; padding: 0.4rem 0.7rem;
+      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 6px; font-size:0.72rem; color:var(--green);
+    }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 12 — МЕТРИКИ
+    ══════════════════════════════════════════════════ */
+    #slide-12 .metrics-wrap { width:100%; max-width:920px; }
+    .stats-4 {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.2rem;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.1rem; text-align: center;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .stat-card:hover { border-color:rgba(0,207,255,0.4); box-shadow:0 0 18px rgba(0,207,255,0.1); }
+    .stat-number {
+      font-family: var(--font-mono); font-size: 1.9rem; font-weight: 700;
+      color: var(--accent); text-shadow: 0 0 10px var(--accent);
+      line-height: 1; margin-bottom: 0.3rem;
+    }
+    .stat-unit { font-size:0.7rem; color:var(--accent); }
+    .stat-label { font-size:0.74rem; color:var(--text-muted); line-height:1.4; }
+    .perf-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem;
+    }
+    .perf-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.8rem 1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;
+    }
+    .perf-name { font-size:0.8rem; color:var(--text); }
+    .perf-time {
+      font-family: var(--font-mono); font-size: 0.82rem; color: var(--green);
+      text-shadow: 0 0 6px var(--green-glow); white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 13 — ВЫВОДЫ
+    ══════════════════════════════════════════════════ */
+    #slide-13 { background:radial-gradient(ellipse at 50% 40%, rgba(0,207,255,0.05) 0%,transparent 60%), var(--bg); }
+    #slide-13 .concl-wrap { width:100%; max-width:860px; text-align:center; }
+    .concl-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.4rem; text-align:left; }
+    .concl-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.1rem;
+    }
+    .concl-list { list-style:none; font-size:0.8rem; color:var(--text); line-height:1.65; }
+    .concl-list li { padding-left: 1rem; position: relative; }
+    .concl-list li::before { content:'—'; position:absolute; left:0; color:var(--text-dim); }
+    .final-line {
+      font-family: var(--font-mono); font-size: clamp(1.1rem,2vw,1.6rem); font-weight: 700;
+      color: var(--text); margin-top: 0.8rem; letter-spacing:-0.3px;
+      text-shadow:0 0 20px rgba(0,207,255,0.4),0 0 40px rgba(0,207,255,0.15);
+    }
+    .final-line .acc { color:var(--accent); }
+
+    /* ══════════════════════════════════════════════════
+       SLIDE 14 — GITHUB QR
+    ══════════════════════════════════════════════════ */
+    #slide-14 {
+      background: radial-gradient(ellipse at 50% 40%, rgba(139,92,246,0.08) 0%,transparent 60%),
+                  radial-gradient(ellipse at 30% 70%, rgba(0,207,255,0.05) 0%,transparent 50%),
+                  var(--bg);
+      justify-content: center; align-items: center;
+    }
+    .qr-wrap {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; width: 100%; max-width: 640px;
+      gap: 0;
+    }
+    .qr-frame {
+      display: inline-flex; align-items: center; justify-content: center;
+      position: relative; padding: 20px; margin: 1.2rem 0;
+    }
+    .qr-ring {
+      position: absolute; inset: -8px; border-radius: 18px;
+      border: 1px solid rgba(0,207,255,0.2);
+      animation: qrRingPulse 2.8s ease-in-out infinite;
+    }
+    @keyframes qrRingPulse {
+      0%,100% { opacity:0.4; transform:scale(1); }
+      50%      { opacity:1;   transform:scale(1.025); box-shadow:0 0 24px rgba(0,207,255,0.25); }
+    }
+    .qr-corner {
+      position: absolute; width: 24px; height: 24px;
+      border-color: var(--accent); border-style: solid;
+    }
+    .qr-corner.tl { top:0;left:0; border-width:3px 0 0 3px; }
+    .qr-corner.tr { top:0;right:0; border-width:3px 3px 0 0; }
+    .qr-corner.bl { bottom:0;left:0; border-width:0 0 3px 3px; }
+    .qr-corner.br { bottom:0;right:0; border-width:0 3px 3px 0; }
+    .qr-img {
+      width: 240px; height: 240px; object-fit: contain;
+      border-radius: 10px; display: block;
+      filter: brightness(1.05) contrast(1.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+    .qr-url {
+      font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent);
+      background: rgba(0,207,255,0.07); border: 1px solid rgba(0,207,255,0.3);
+      border-radius: 10px; padding: 0.65rem 2rem; margin-top: 0.4rem;
+      display: inline-block; letter-spacing: 0.5px;
+    }
+    .qr-meta-grid {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-top: 0.7rem; flex-wrap: wrap; justify-content: center;
+      background: rgba(11,22,40,0.6); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.6rem 1.4rem;
+    }
+    .qr-meta-item { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+    .qr-meta-lbl {
+      font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+    .qr-meta-val { font-size: 0.83rem; font-weight: 600; color: var(--text); }
+    .qr-meta-dot { color: var(--border2); font-size: 1.2rem; line-height: 1; padding-top: 0.5rem; }
+    .qr-sub { font-size:0.8rem; color:var(--text-muted); margin-top:0.7rem; }
+    .thank-text {
+      font-family: var(--font-mono); font-size: clamp(1.4rem,2.5vw,2rem);
+      font-weight: 700; color: var(--text); margin-bottom: 0.25rem;
+      text-shadow: 0 0 30px rgba(139,92,246,0.5), 0 0 60px rgba(139,92,246,0.2);
+      letter-spacing: -0.5px;
+    }
+    .thank-sub { font-size:0.9rem; color:var(--text-muted); }
+
+    /* ── META TABLE (slide 1) ── */
+    .meta-table {
+      display: flex; align-items: stretch; gap: 0;
+      margin-top: 2rem;
+      background: rgba(11,22,40,0.7);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+    .meta-row-item {
+      display: flex; align-items: center; gap: 0.85rem;
+      padding: 0.9rem 1.3rem; flex: 1;
+    }
+    .meta-row-icon {
+      font-size: 1.3rem; flex-shrink: 0;
+      filter: drop-shadow(0 0 6px var(--accent-glow));
+    }
+    .meta-row-body { text-align: left; }
+    .meta-row-label {
+      font-family: var(--font-mono); font-size: 0.6rem;
+      letter-spacing: 1.8px; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 0.25rem;
+    }
+    .meta-row-value {
+      font-size: 0.85rem; font-weight: 600; color: var(--text);
+      white-space: nowrap; line-height: 1.3;
+    }
+    .meta-group {
+      font-family: var(--font-mono); font-size: 0.72rem;
+      color: var(--accent); background: rgba(0,207,255,0.08);
+      border: 1px solid rgba(0,207,255,0.25); border-radius: 4px;
+      padding: 0.1rem 0.45rem; margin-left: 0.3rem;
+    }
+    .meta-divider {
+      width: 1px; background: var(--border);
+      align-self: stretch; flex-shrink: 0;
+    }
+
+    /* ── PROGRESS BARS (slide 2) ── */
+    .pb-wrap { margin-bottom: 1.2rem; }
+    .pb-row { margin-bottom:0.9rem; }
+    .pb-header { display:flex; justify-content:space-between; margin-bottom:0.3rem; }
+    .pb-label { font-size:0.85rem; color:var(--text); }
+    .pb-val { font-family:var(--font-mono); font-size:0.85rem; color:var(--accent); }
+    .pb-track { width:100%; height:7px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+    .pb-fill {
+      height:100%; border-radius:4px; width:0;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+      box-shadow: 0 0 8px var(--accent-glow);
+      transition: width 1.3s cubic-bezier(0.4,0,0.2,1);
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div class="hex-bg"></div>
+<canvas id="particles-canvas"></canvas>
+<div class="scanlines"></div>
+
+<button id="scroll-toggle" onclick="toggleScrollMode()">SCROLL</button>
+<div id="counter">1 / 14</div>
+<button class="nav-btn" id="btn-prev" onclick="navigate(-1)">&#8592;</button>
+<button class="nav-btn" id="btn-next" onclick="navigate(1)">&#8594;</button>
+<div id="dots"></div>
+
+<div id="presentation">
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 1 — TITLE           ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-1">
+  <div class="title-wrap">
+    <div class="glow-orb blue"></div>
+    <div class="glow-orb purple"></div>
+    <div class="title-corner tl"></div><div class="title-corner tr"></div>
+    <div class="title-corner bl"></div><div class="title-corner br"></div>
+    <div class="title-tag">Индивидуальный IT-проект</div>
+    <h1 class="main-title" id="typed-title"><span id="typed-text" class="typing-cursor"></span></h1>
+    <div class="main-subtitle">Персональный суверенный голосовой ассистент в Telegram</div>
+    <div class="tech-row">
+      <span class="badge badge-blue">Python 3.13</span>
+      <span class="badge badge-purple">n8n + Docker</span>
+      <span class="badge badge-blue">Groq Whisper</span>
+      <span class="badge badge-purple">DeepSeek-v4-Pro</span>
+      <span class="badge badge-green">SileroTTS</span>
+      <span class="badge badge-blue">LangChain</span>
+    </div>
+    <div class="meta-table">
+      <div class="meta-row-item">
+        <span class="meta-row-icon">&#128101;</span>
+        <div class="meta-row-body">
+          <div class="meta-row-label">Студент</div>
+          <div class="meta-row-value">А.&thinsp;Р.&thinsp;Соловов &nbsp;<span class="meta-group">группа&nbsp;ИСП&#8209;914</span></div>
+        </div>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-row-item">
+        <span class="meta-row-icon">&#127891;</span>
+        <div class="meta-row-body">
+          <div class="meta-row-label">Руководитель проекта</div>
+          <div class="meta-row-value">Г.&thinsp;Л.&thinsp;Малышева</div>
+        </div>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-row-item">
+        <span class="meta-row-icon">&#127979;</span>
+        <div class="meta-row-body">
+          <div class="meta-row-label">Учебное заведение</div>
+          <div class="meta-row-value">ППК СГТУ им.&thinsp;Ю.&thinsp;А.&thinsp;Гагарина</div>
+        </div>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-row-item">
+        <span class="meta-row-icon">&#128197;</span>
+        <div class="meta-row-body">
+          <div class="meta-row-label">Год выполнения</div>
+          <div class="meta-row-value">2025&thinsp;—&thinsp;2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 2 — АКТУАЛЬНОСТЬ    ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-2">
+  <h2 class="slide-title">Актуальность темы</h2>
+  <div style="width:100%;max-width:920px;">
+    <div class="pb-wrap stagger-item">
+      <div class="pb-row">
+        <div class="pb-header"><span class="pb-label">Telegram — платформа для ботов (активных пользователей)</span><span class="pb-val">900 млн</span></div>
+        <div class="pb-track"><div class="pb-fill" data-value="90"></div></div>
+      </div>
+      <div class="pb-row">
+        <div class="pb-header"><span class="pb-label">Рост голосовых интерфейсов (год к году)</span><span class="pb-val">+73%</span></div>
+        <div class="pb-track"><div class="pb-fill" data-value="73"></div></div>
+      </div>
+      <div class="pb-row">
+        <div class="pb-header"><span class="pb-label">Автоматизация личных задач — интерес аудитории</span><span class="pb-val">91%</span></div>
+        <div class="pb-track"><div class="pb-fill" data-value="91"></div></div>
+      </div>
+    </div>
+    <div class="content-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;">
+      <div class="problem-card stagger-item">
+        <div class="label">Проблема 1</div>
+        <div class="problem-title">Когнитивная перегрузка</div>
+        <div class="problem-desc">Информационная лавина из уведомлений, списков задач и переписок снижает продуктивность и эффективность тайм-менеджмента. Традиционные заметки и разрозненные приложения не справляются.</div>
+      </div>
+      <div class="problem-card stagger-item">
+        <div class="label red">Проблема 2 — закрытость</div>
+        <div class="problem-title">Apple Siri, Google Assistant, Алиса</div>
+        <div class="problem-desc">Развитые экосистемы, но жёстко закрытая архитектура: невозможно изменить системный промпт, логику ИИ или декомпозировать сложные абстрактные инструкции.</div>
+      </div>
+      <div class="relevance-quote stagger-item" style="grid-column:1/-1;">
+        <strong>Конфиденциальность:</strong> обработка личных расписаний, целей и аудиозаписей на серверах сторонних корпораций создаёт риски утечек и ставит систему в зависимость от внешних геополитических факторов. Нужно <strong>суверенное, кастомизируемое решение</strong>.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 3 — ЦЕЛЬ И ЗАДАЧИ  ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-3">
+  <h2 class="slide-title">Цель и задачи исследования</h2>
+  <div class="goal-wrap">
+    <div class="goal-main stagger-item">
+      <div class="label">Главная цель проекта</div>
+      <div class="goal-main-text">Разработка, программная реализация и комплексное тестирование <strong>интеллектуальной системы персонального голосового ассистента</strong> в мессенджере Telegram на базе Python + n8n с привлечением современных больших языковых моделей — не просто чат-бота, а полноценного <em>суверенного цифрового секретаря</em>.</div>
+    </div>
+    <div class="tasks-grid" id="task-list-3">
+      <div class="task-row"><span class="task-num">01</span>Исследовать предметную область и провести сравнительный анализ коммерческих ассистентов</div>
+      <div class="task-row"><span class="task-num">02</span>Обосновать технологический стек: Telegram API, STT/TTS, n8n, LLM</div>
+      <div class="task-row"><span class="task-num">03</span>Спроектировать двухуровневую архитектуру: медиа-шлюз + когнитивный центр</div>
+      <div class="task-row"><span class="task-num">04</span>Реализовать Python-модуль: приём, конвертация, транскрипция, синтез речи</div>
+      <div class="task-row"><span class="task-num">05</span>Сконструировать агентный воркфлоу n8n с памятью и интеграцией Google API</div>
+      <div class="task-row"><span class="task-num">06</span>Разработать механизмы ИБ, отказоустойчивости и протестировать на реальных сценариях</div>
+    </div>
+    <div class="obj-row stagger-item">
+      <div class="obj-card">
+        <div class="label">Объект исследования</div>
+        <div class="obj-card-text">Процесс автоматизации персонального планирования и управления временем с использованием голосового интерфейса</div>
+      </div>
+      <div class="obj-card">
+        <div class="label purple">Предмет исследования</div>
+        <div class="obj-card-text">Архитектурные паттерны и методы интеграции больших языковых моделей в мессенджер-ориентированные системы</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 4 — АРХИТЕКТУРА     ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-4">
+  <h2 class="slide-title">Двухуровневая архитектура системы</h2>
+  <div class="arch-wrap">
+    <div class="two-layer stagger-item">
+      <div class="layer-card blue">
+        <div class="layer-num">1</div>
+        <div class="label">Слой 1 — Медиа-шлюз</div>
+        <div class="layer-title">Python 3.13 · Linux Server</div>
+        <div class="layer-sub">Производительный транспортный модуль</div>
+        <ul class="layer-items">
+          <li class="layer-item"><span class="layer-dot blue"></span>Long polling соединение с Telegram Bot API</li>
+          <li class="layer-item"><span class="layer-dot blue"></span>Декодирование OGG/OPUS через subprocess ffmpeg</li>
+          <li class="layer-item"><span class="layer-dot blue"></span>Локальный высокоскоростной синтез речи SileroTTS</li>
+          <li class="layer-item"><span class="layer-dot blue"></span>Управление транспортными сессиями пользователей</li>
+          <li class="layer-item"><span class="layer-dot blue"></span>Фильтрация нераспознанной речи (4 порога)</li>
+        </ul>
+      </div>
+      <div class="layer-card purple">
+        <div class="layer-num">2</div>
+        <div class="label purple">Слой 2 — Когнитивный центр</div>
+        <div class="layer-title">n8n · Docker Container</div>
+        <div class="layer-sub">Интеллектуальный оркестратор решений</div>
+        <ul class="layer-items">
+          <li class="layer-item"><span class="layer-dot purple"></span>Приём текстовых транскриптов от медиа-шлюза</li>
+          <li class="layer-item"><span class="layer-dot purple"></span>LangChain-агент на базе DeepSeek-v4-Pro</li>
+          <li class="layer-item"><span class="layer-dot purple"></span>Tool Calling: Google Calendar API + Tasks API</li>
+          <li class="layer-item"><span class="layer-dot purple"></span>Долгосрочная память: Goals Table, Habits Table</li>
+          <li class="layer-item"><span class="layer-dot purple"></span>Cron-автоматизация: Morning Briefing / Evening Planning</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-flow-row stagger-item">
+      <span class="flow-node">&#x1F464; Пользователь</span>
+      <span class="flow-arrow">&#8594;</span>
+      <span class="flow-node">&#x1F4F1; Telegram OGG</span>
+      <span class="flow-arrow">&#8594;</span>
+      <span class="flow-node">&#x1F40D; Python Шлюз</span>
+      <span class="flow-arrow">&#8594;</span>
+      <span class="flow-node">&#x2601; Groq Whisper</span>
+      <span class="flow-arrow">&#8594;</span>
+      <span class="flow-node">&#x1F9E0; n8n / DeepSeek</span>
+      <span class="flow-arrow">&#8594;</span>
+      <span class="flow-node">&#x1F50A; SileroTTS OGG</span>
+      <span class="flow-arrow">&#8594;</span>
+      <span class="flow-node">&#x1F464; Ответ</span>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 5 — ТЕХНОЛОГИИ      ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-5">
+  <h2 class="slide-title">Стек технологий <span class="accent">— наведи для деталей</span></h2>
+  <div class="tech-grid">
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F40D;</div><div class="tech-name">Python 3.13</div><div class="tech-cat">Основной язык</div><div class="flip-hint">наведи &#8594;</div></div>
+      <div class="flip-back"><div class="tech-desc">ООП-архитектура, dataclasses для конфигурации, type hints. Асинхронный переход (aiogram) — в планах.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F4AC;</div><div class="tech-name">pyTelegramBotAPI</div><div class="tech-cat">Telegram клиент</div></div>
+      <div class="flip-back"><div class="tech-desc">Синхронный Bot API клиент. Long-polling, обработчики сообщений, скачивание OGG, отправка voice.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F399;</div><div class="tech-name">Groq Whisper</div><div class="tech-cat">STT — Облако</div></div>
+      <div class="flip-back"><div class="tech-desc">Модель Whisper-large-v3 на тензорных процессорах Groq Cloud. Режим verbose_json для фильтрации шума.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F50A;</div><div class="tech-name">SileroTTS</div><div class="tech-cat">TTS — Локально</div></div>
+      <div class="flip-back"><div class="tech-desc">Нейросетевой синтез v5_1_ru, голос aidar. Запуск на CPU хоста. Lazy-загрузка при первом вызове.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F527;</div><div class="tech-name">n8n + Docker</div><div class="tech-cat">Автоматизация</div></div>
+      <div class="flip-back"><div class="tech-desc">Когнитивный оркестратор в Docker-контейнере. Webhook, Cron-триггеры, Data Tables, визуальный воркфлоу.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F9E0;</div><div class="tech-name">DeepSeek-v4-Pro</div><div class="tech-cat">LLM — ИИ ядро</div></div>
+      <div class="flip-back"><div class="tech-desc">Семантический разбор сложных инструкций, вычисление дат, формирование аргументов для Tool Calling.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F517;</div><div class="tech-name">LangChain</div><div class="tech-cat">Агентная логика</div></div>
+      <div class="flip-back"><div class="tech-desc">ИИ-агент с механизмом Tool Calling. Управляет выбором инструментов и оркестрацией запросов к API.</div></div>
+    </div></div>
+    <div class="flip-card"><div class="flip-inner">
+      <div class="flip-front"><div class="tech-icon">&#x1F4C5;</div><div class="tech-name">Google APIs</div><div class="tech-cat">Интеграции</div></div>
+      <div class="flip-back"><div class="tech-desc">Google Calendar API — создание и редактирование событий. Google Tasks API — управление списками задач.</div></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 6 — МЕДИА-ШЛЮЗ     ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-6">
+  <h2 class="slide-title">Медиа-шлюз — Python-архитектура</h2>
+  <div class="mw-wrap">
+    <div class="classes-grid stagger-item">
+      <div class="class-card">
+        <div class="class-name">AppConfig</div>
+        <div class="class-role">Конфигурация</div>
+        <div class="class-detail">Безопасная инициализация параметров из изолированной среды <code>.env</code>. Защита токенов от утечки.</div>
+      </div>
+      <div class="class-card">
+        <div class="class-name">SessionStorage</div>
+        <div class="class-role">Хранилище сессий</div>
+        <div class="class-detail">Управление жизненным циклом сессий и кэшированием контекста в <code>user_sessions.json</code>.</div>
+      </div>
+      <div class="class-card">
+        <div class="class-name">N8nClient</div>
+        <div class="class-role">HTTP-коннектор</div>
+        <div class="class-detail">Синхронные HTTP POST к когнитивному оркестратору. Автоматический SSL-fallback на HTTP.</div>
+      </div>
+      <div class="class-card">
+        <div class="class-name">VoiceService</div>
+        <div class="class-role">Голосовой модуль</div>
+        <div class="class-detail">Координирует STT-транскрипцию, фильтрацию шума и TTS-синтез ответов.</div>
+      </div>
+    </div>
+    <div class="pipeline-strip stagger-item">
+      <div class="pipe-step">&#x1F464; Voice OGG<span class="ps-sub">OPUS codec</span></div>
+      <span class="pipe-arr">&#8594;</span>
+      <div class="pipe-step">&#x1F4E5; Download<span class="ps-sub">Telegram API</span></div>
+      <span class="pipe-arr">&#8594;</span>
+      <div class="pipe-step">&#x1F504; ffmpeg<span class="ps-sub">OGG &#8594; WAV 16kHz</span></div>
+      <span class="pipe-arr">&#8594;</span>
+      <div class="pipe-step">&#x2601; Groq Cloud<span class="ps-sub">Whisper-large-v3</span></div>
+      <span class="pipe-arr">&#8594;</span>
+      <div class="pipe-step">&#x1F4DD; Transcript<span class="ps-sub">verbose_json</span></div>
+      <span class="pipe-arr">&#8594;</span>
+      <div class="pipe-step">&#x1F9FF; Фильтр шума<span class="ps-sub">4 порога</span></div>
+      <span class="pipe-arr">&#8594;</span>
+      <div class="pipe-step">&#x1F310; n8n webhook<span class="ps-sub">+ сессия</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 7 — КОГНИТ. ЦЕНТР   ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-7">
+  <h2 class="slide-title">Когнитивный центр — n8n + DeepSeek</h2>
+  <div class="cc-wrap">
+    <div class="cc-grid stagger-item">
+      <div class="cc-card">
+        <div class="label purple">LangChain агент</div>
+        <div class="cc-card-title">DeepSeek-v4-Pro — ИИ-оркестратор</div>
+        <ul class="cc-items">
+          <li class="cc-item"><span class="cc-dot"></span>Семантический разбор сложных инструкций</li>
+          <li class="cc-item"><span class="cc-dot"></span>Вычисление относительных дат («завтра», «на следующей неделе»)</li>
+          <li class="cc-item"><span class="cc-dot"></span>Tool Calling: Google Calendar + Tasks</li>
+          <li class="cc-item"><span class="cc-dot"></span>Goals Table + Habits Table (Data Tables n8n)</li>
+          <li class="cc-item"><span class="cc-dot"></span>Llama-3-8b — именование сессий за 0.25–0.40 сек</li>
+        </ul>
+      </div>
+      <div class="cc-card">
+        <div class="label amber">Автономные регламенты (Cron)</div>
+        <div class="cron-row">
+          <div class="cron-card">
+            <div class="cron-time">06:30</div>
+            <div class="cron-name">Morning Briefing</div>
+            <div class="cron-desc">Сканирование календарей, просроченные задачи → аудио-подкаст в Telegram</div>
+          </div>
+          <div class="cron-card">
+            <div class="cron-time">20:30</div>
+            <div class="cron-name">Evening Planning</div>
+            <div class="cron-desc">Опрос выполненных задач, обновление счётчиков Habits Table</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="stagger-item">
+      <div class="label red" style="margin-bottom:0.6rem;">Алгоритм эскалации напоминаний</div>
+      <div class="escalation-row">
+        <div class="esc-card">
+          <div class="esc-lv lv0">Lv0</div>
+          <div class="esc-label">Сдвиг на 15 мин<br>Мягкое текстовое уведомление</div>
+        </div>
+        <div class="esc-card">
+          <div class="esc-lv lv1">Lv1</div>
+          <div class="esc-label">Повтор +15 мин<br>Настойчивое сообщение</div>
+        </div>
+        <div class="esc-card">
+          <div class="esc-lv lv2">Lv2</div>
+          <div class="esc-label">Строгое голосовое<br>Блокировка новых сессий</div>
+        </div>
+        <div class="esc-card">
+          <div class="esc-lv lv3">Lv3</div>
+          <div class="esc-label">Реструктуризация расписания<br>Задача-штраф × 2 приоритет</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 8 — КОД: ГОЛОС      ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-8">
+  <h2 class="slide-title">Обработчик голосовых сообщений</h2>
+  <div class="code-wrap">
+    <div class="code-block stagger-item">
+      <div class="code-header">
+        <span class="code-dot r"></span><span class="code-dot y"></span><span class="code-dot g"></span>
+        <span class="code-filename">main.py — TelegramAssistantBot.process_voice_message()</span>
+      </div>
+      <pre><code><span class="dec">@telegram_bot</span>.message_handler(<span class="str">content_types</span>=[<span class="str">"voice"</span>])
+<span class="kw">def</span> <span class="fn">audio_processing</span>(message: <span class="cls">Any</span>) -> <span class="kw">None</span>:
+    assistant.<span class="fn">process_voice_message</span>(message)
+
+<span class="kw">def</span> <span class="fn">process_voice_message</span>(<span class="kw">self</span>, message: <span class="cls">Any</span>) -> <span class="kw">None</span>:
+    <span class="cmt"># 1. Скачать OGG-файл из Telegram</span>
+    file_info   = <span class="kw">self</span>.bot.<span class="fn">get_file</span>(message.voice.file_id)
+    voice_bytes = <span class="kw">self</span>.bot.<span class="fn">download_file</span>(file_info.file_path)
+
+    <span class="cmt"># 2. Транскрибировать через Groq Whisper-large-v3</span>
+    transcription  = <span class="kw">self</span>.voice_service.<span class="fn">transcribe_telegram_voice</span>(voice_bytes)
+    recognized_text = <span class="fn">metadata_value</span>(transcription, <span class="str">"text"</span>, <span class="str">""</span>).<span class="fn">strip</span>()
+
+    <span class="cmt"># 3. Фильтр нераспознанной речи (4 порога)</span>
+    <span class="kw">if</span> <span class="fn">is_unintelligible_transcription</span>(transcription):
+        <span class="kw">self</span>.bot.<span class="fn">send_message</span>(message.from_user.id, <span class="cls">UNINTELLIGIBLE_VOICE_MESSAGE</span>)
+        <span class="kw">return</span>
+
+    <span class="cmt"># 4. Передать в AI-цепочку (n8n → DeepSeek → ответ)</span>
+    <span class="kw">self</span>.<span class="fn">_process_user_request</span>(message.from_user.id, recognized_text)</code></pre>
+    </div>
+    <div class="code-note stagger-item">
+      Шлюз скачивает бинарный поток <code>.ogg</code> (кодек OPUS), конвертирует через <strong>ffmpeg</strong> в монофонический <code>output.wav</code> 16 000 Гц, отправляет в <strong>Groq Cloud</strong> и проверяет разборчивость речи перед передачей в AI-цепочку. Полное время обработки STT: <strong>0.20–0.50 с</strong>.
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 9 — КОД: ФИЛЬТР    ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-9">
+  <h2 class="slide-title">Фильтрация нераспознанной речи</h2>
+  <div class="code-wrap">
+    <div class="code-block stagger-item">
+      <div class="code-header">
+        <span class="code-dot r"></span><span class="code-dot y"></span><span class="code-dot g"></span>
+        <span class="code-filename">voice_utils.py — is_unintelligible_transcription()</span>
+      </div>
+      <pre><code><span class="cls">NO_SPEECH_PROB_THRESHOLD</span>          = <span class="num">0.6</span>   <span class="cmt"># вероятность тишины &gt; 60%</span>
+<span class="cls">LOW_CONFIDENCE_AVG_LOGPROB</span>         = -<span class="num">1.0</span>  <span class="cmt"># низкая уверенность модели</span>
+<span class="cls">NO_SPEECH_SEGMENT_RATIO_THRESHOLD</span> = <span class="num">0.5</span>   <span class="cmt"># доля «тихих» сегментов</span>
+
+<span class="kw">def</span> <span class="fn">is_unintelligible_transcription</span>(transcription: <span class="cls">Any</span>) -> <span class="cls">bool</span>:
+    segments        = transcription.segments <span class="kw">or</span> []
+    no_speech_probs = [s.no_speech_prob <span class="kw">for</span> s <span class="kw">in</span> segments]
+    avg_logprobs    = [s.avg_logprob     <span class="kw">for</span> s <span class="kw">in</span> segments]
+
+    mean_nsp   = <span class="fn">_mean</span>(no_speech_probs)
+    mean_logp  = <span class="fn">_mean</span>(avg_logprobs)
+    bad_ratio  = <span class="fn">_ratio_at_least</span>(no_speech_probs, <span class="cls">NO_SPEECH_PROB_THRESHOLD</span>)
+
+    <span class="kw">return</span> (
+        mean_nsp  >= <span class="cls">NO_SPEECH_PROB_THRESHOLD</span>          <span class="cmt"># порог 1</span>
+        <span class="kw">or</span> bad_ratio >= <span class="cls">NO_SPEECH_SEGMENT_RATIO_THRESHOLD</span> <span class="cmt"># порог 2</span>
+        <span class="kw">or</span> mean_logp  <= <span class="cls">LOW_CONFIDENCE_AVG_LOGPROB</span>       <span class="cmt"># порог 3</span>
+        <span class="kw">or not</span> transcription.text.<span class="fn">strip</span>()                 <span class="cmt"># порог 4</span>
+    )</code></pre>
+    </div>
+    <div class="code-note stagger-item">
+      Четырёхуровневая защита экономит токенный баланс: фильтрует шум, карманные нажатия и фоновые звуки. Данные берутся из метаданных режима <code>verbose_json</code> Groq Whisper — без дополнительных API-вызовов.
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 10 — ДЕМОНСТРАЦИЯ   ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-10">
+  <h2 class="slide-title">Демонстрация работы</h2>
+  <div class="collage-stage" id="collage-stage">
+    <div class="collage-card" data-pos="0" data-idx="0">
+      <img src="Пример 1.png" alt="Текстовый запрос">
+      <div class="collage-label"><span class="cl-active">&#x1F4AC; Текстовый запрос</span></div>
+    </div>
+    <div class="collage-card" data-pos="1" data-idx="1">
+      <img src="Пример 2.png" alt="Голосовой запрос">
+      <div class="collage-label">&#x1F399; Голосовой запрос</div>
+    </div>
+    <div class="collage-card" data-pos="2" data-idx="2">
+      <img src="Пример 2 продолжение.png" alt="Голосовой запрос (продолжение)">
+      <div class="collage-label">&#x1F399; Голосовой (прод.)</div>
+    </div>
+    <div class="collage-card" data-pos="3" data-idx="3">
+      <img src="Пример 2 Google Calendar.png" alt="Google Calendar">
+      <div class="collage-label">&#x1F4C5; Google Calendar</div>
+    </div>
+    <div class="collage-card" data-pos="4" data-idx="4">
+      <img src="Пример 2 Google Task.png" alt="Google Tasks">
+      <div class="collage-label">&#x2705; Google Tasks</div>
+    </div>
+    <div class="collage-card" data-pos="5" data-idx="5">
+      <img src="Пример 3.png" alt="Управление сессиями">
+      <div class="collage-label">&#x1F4BE; Сессии контекста</div>
+    </div>
+    <div class="collage-card" data-pos="6" data-idx="6">
+      <img src="Пример 4.png" alt="Декомпозиция целей">
+      <div class="collage-label">&#x1F3AF; Декомпозиция целей</div>
+    </div>
+    <div class="collage-card" data-pos="7" data-idx="7">
+      <img src="Пример 4 продолжение.png" alt="Декомпозиция (продолжение)">
+      <div class="collage-label">&#x1F3AF; Декомпозиция (прод.)</div>
+    </div>
+    <div class="collage-card" data-pos="8" data-idx="8">
+      <img src="Пример 5.png" alt="Голосовой ответ TTS">
+      <div class="collage-label">&#x1F50A; Голосовой ответ TTS</div>
+    </div>
+    <div class="collage-card" data-pos="9" data-idx="9">
+      <img src="Пример 6.png" alt="Вечерний отчёт">
+      <div class="collage-label">&#x1F319; Вечерний отчёт</div>
+    </div>
+    <div class="collage-card" data-pos="10" data-idx="10">
+      <img src="Пример 6 продолжение.png" alt="Вечерний отчёт (продолжение)">
+      <div class="collage-label">&#x1F319; Вечерний отчёт (прод.)</div>
+    </div>
+  </div>
+  <div class="collage-dots" id="collage-dots"></div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 11 — СЦЕНАРИИ       ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-11">
+  <h2 class="slide-title">Сценарии тестирования</h2>
+  <div class="scenarios-grid">
+    <div class="scenario-card stagger-item">
+      <div class="sc-num">Сценарий 01</div>
+      <div class="sc-title">&#x1F4C5; Комплексное планирование</div>
+      <div class="sc-desc">«Джарвис, запиши встречу с научным руководителем на завтра на два часа дня, обсудить структуру третьей главы, займёт полтора часа»</div>
+      <div class="sc-result">&#x2714; Субсекундная STT + событие в Google Calendar 14:00–15:30 с описанием</div>
+    </div>
+    <div class="scenario-card stagger-item">
+      <div class="sc-num">Сценарий 02</div>
+      <div class="sc-title">&#x1F3AF; Декомпозиция целей</div>
+      <div class="sc-desc">Запрос составить план подготовки к демонстрационному экзамену по программированию</div>
+      <div class="sc-result">&#x2714; Goals Table ← цель, Google Tasks ← подзадачи по КИМ и бэкенду</div>
+    </div>
+    <div class="scenario-card stagger-item">
+      <div class="sc-num">Сценарий 03</div>
+      <div class="sc-title">&#x23F0; Cron-автоматизация</div>
+      <div class="sc-desc">Morning Briefing в 06:30 и Evening Planning в 20:30 — проактивная система без команды пользователя</div>
+      <div class="sc-result">&#x2714; Аудио-подкаст в Telegram + обновление Habits Table</div>
+    </div>
+    <div class="scenario-card stagger-item">
+      <div class="sc-num">Сценарий 04</div>
+      <div class="sc-title">&#x1F6A8; Эскалация напоминаний</div>
+      <div class="sc-desc">Игнорирование задачи активирует 4-уровневый алгоритм вплоть до реструктуризации расписания и задачи-штрафа</div>
+      <div class="sc-result">&#x2714; Lv3: автоудаление слота + задача ×2 приоритет на следующий день</div>
+    </div>
+    <div class="scenario-card stagger-item">
+      <div class="sc-num">Сценарий 05</div>
+      <div class="sc-title">&#x1F9FF; Фильтрация шума</div>
+      <div class="sc-desc">Карманные нажатия, фоновые звуки и нечёткая речь — система корректно блокирует ложные срабатывания</div>
+      <div class="sc-result">&#x2714; 4 независимых порога: no_speech_prob, logprob, ratio, пустой текст</div>
+    </div>
+    <div class="scenario-card stagger-item">
+      <div class="sc-num">Сценарий 06</div>
+      <div class="sc-title">&#x1F504; Управление сессиями</div>
+      <div class="sc-desc">Команды /new, /sessions, /switch позволяют легко переключаться между накопленными контекстами диалога</div>
+      <div class="sc-result">&#x2714; Llama-3-8b-8192 генерирует краткий заголовок сессии за 0.25–0.40 с</div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 12 — МЕТРИКИ        ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-12">
+  <h2 class="slide-title">Метрики производительности</h2>
+  <div class="metrics-wrap">
+    <div class="stats-4 stagger-item">
+      <div class="stat-card">
+        <div class="stat-number" data-target="4">0</div>
+        <div class="stat-label">ключевых<br>компонента</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="7">0</div>
+        <div class="stat-label">команд бота<br>/new /sessions…</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="4">0</div>
+        <div class="stat-label">фильтра<br>шума</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" data-target="6">0</div>
+        <div class="stat-label">успешных<br>сценариев</div>
+      </div>
+    </div>
+    <div class="perf-list stagger-item">
+      <div class="perf-item">
+        <span class="perf-name">&#x1F4E5; Захват медиапотока (Telegram → шлюз)</span>
+        <span class="perf-time">0.15 – 0.25 с</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-name">&#x2601; Groq Whisper — транскрипция STT</span>
+        <span class="perf-time">0.20 – 0.50 с</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-name">&#x1F50A; SileroTTS — синтез речи (CPU)</span>
+        <span class="perf-time">0.35 – 0.45 с</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-name">&#x1F3F7; Llama-3-8b — именование сессии</span>
+        <span class="perf-time">0.25 – 0.40 с</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-name">&#x1F5A5; Хост-сервер: CPU 2 ядра / RAM 4 ГБ</span>
+        <span class="perf-time">Linux</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-name">&#x1F6E1; Фильтр: no_speech_prob &gt; 0.6 · logprob &lt; −1.0</span>
+        <span class="perf-time">~0 мс</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 13 — ВЫВОДЫ         ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-13">
+  <h2 class="slide-title">Выводы</h2>
+  <div class="concl-wrap">
+    <div class="concl-grid stagger-item">
+      <div class="concl-card">
+        <div class="label green">&#x2714; Реализовано</div>
+        <ul class="concl-list">
+          <li>Полнофункциональный суверенный ассистент в Telegram</li>
+          <li>Двухуровневая архитектура: медиа-шлюз + когнитивный центр</li>
+          <li>STT + LangChain/DeepSeek + TTS — единый pipeline</li>
+          <li>Агентная декомпозиция сложных инструкций</li>
+          <li>Проактивные Cron-регламенты и эскалация</li>
+        </ul>
+      </div>
+      <div class="concl-card">
+        <div class="label">&#x1F4DA; Изучено</div>
+        <ul class="concl-list">
+          <li>Telegram Bot API + pyTelegramBotAPI</li>
+          <li>Groq Cloud · Whisper-large-v3 verbose_json</li>
+          <li>n8n workflow automation + Docker</li>
+          <li>LangChain · Tool Calling · DeepSeek-v4-Pro</li>
+          <li>SileroTTS · ffmpeg аудио-конвертация</li>
+          <li>Google Calendar API + Tasks API</li>
+        </ul>
+      </div>
+      <div class="concl-card">
+        <div class="label amber">&#x1F52D; Перспективы</div>
+        <ul class="concl-list">
+          <li>Миграция на aiogram (async)</li>
+          <li>GPU-инференс TTS для ускорения</li>
+          <li>Интеграция Home Assistant (умный дом)</li>
+          <li>Биометрическая аутентификация по голосу</li>
+          <li>Полностью локальные LLM без облака</li>
+        </ul>
+      </div>
+    </div>
+    <div class="final-line stagger-item">
+      «Голос — самый <span class="acc">естественный</span> интерфейс для <span class="acc">суверенного</span> ИИ»
+    </div>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════╗
+     ║  SLIDE 14 — GITHUB QR      ║
+     ╚══════════════════════════════╝ -->
+<section class="slide" id="slide-14">
+  <div class="qr-wrap">
+    <div class="thank-text">Спасибо за внимание!</div>
+    <div class="thank-sub">Готов ответить на ваши вопросы</div>
+    <div class="qr-frame">
+      <div class="qr-ring"></div>
+      <div class="qr-corner tl"></div><div class="qr-corner tr"></div>
+      <div class="qr-corner bl"></div><div class="qr-corner br"></div>
+      <img class="qr-img" src="qr-code (1).jpeg" alt="GitHub QR-код репозитория">
+    </div>
+    <div class="badge badge-purple" style="margin-bottom:0.6rem;">Исходный код проекта</div>
+    <div class="qr-url">&#xf09b;&nbsp; GitHub Repository</div>
+    <div class="qr-meta-grid">
+      <div class="qr-meta-item">
+        <span class="qr-meta-lbl">Студент</span>
+        <span class="qr-meta-val">А.&thinsp;Р.&thinsp;Соловов, ИСП&#8209;914</span>
+      </div>
+      <div class="qr-meta-dot">·</div>
+      <div class="qr-meta-item">
+        <span class="qr-meta-lbl">Руководитель</span>
+        <span class="qr-meta-val">Г.&thinsp;Л.&thinsp;Малышева</span>
+      </div>
+      <div class="qr-meta-dot">·</div>
+      <div class="qr-meta-item">
+        <span class="qr-meta-lbl">Год</span>
+        <span class="qr-meta-val">2025–2026</span>
+      </div>
+    </div>
+    <div class="qr-sub">ППК СГТУ им.&thinsp;Ю.&thinsp;А.&thinsp;Гагарина</div>
+  </div>
+</section>
+
+</div><!-- #presentation -->
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const TOTAL = 14;
+let current = 0, isAnimating = false, scrollMode = false;
+const slides = document.querySelectorAll('.slide');
+const dotsContainer = document.getElementById('dots');
+
+// ═══════════════════════════════════════
+// DOTS
+// ═══════════════════════════════════════
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.addEventListener('click', () => goTo(i));
+  dotsContainer.appendChild(d);
+});
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function navigate(dir) {
+  const nxt = current + dir;
+  if (nxt < 0 || nxt >= TOTAL) return;
+  goTo(nxt, dir);
+}
+
+function goTo(index, dir) {
+  if (isAnimating || index === current) return;
+  const direction = dir !== undefined ? dir : (index > current ? 1 : -1);
+  isAnimating = true;
+  const outSlide = slides[current];
+  const inSlide  = slides[index];
+
+  inSlide.classList.add(direction > 0 ? 'enter-right' : 'enter-left');
+  inSlide.style.display = 'flex';
+  inSlide.offsetHeight; // reflow
+
+  outSlide.classList.remove('active');
+  outSlide.classList.add(direction > 0 ? 'exit-left' : 'exit-right');
+  inSlide.classList.remove('enter-right', 'enter-left');
+  inSlide.classList.add('active');
+
+  current = index;
+  updateUI();
+  triggerSlideAnimations(index);
+
+  setTimeout(() => {
+    outSlide.classList.remove('exit-left', 'exit-right');
+    isAnimating = false;
+  }, 450);
+}
+
+function updateUI() {
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  document.getElementById('counter').textContent = (current + 1) + ' / ' + TOTAL;
+  document.getElementById('progress-bar').style.width = ((current + 1) / TOTAL * 100) + '%';
+}
+
+// ═══════════════════════════════════════
+// SLIDE ANIMATIONS
+// ═══════════════════════════════════════
+function triggerSlideAnimations(index) {
+  const slide = slides[index];
+
+  slide.querySelectorAll('.stagger-item, .task-row').forEach(el => el.classList.remove('visible'));
+
+  setTimeout(() => {
+    slide.querySelectorAll('.stagger-item').forEach((el, i) => {
+      setTimeout(() => el.classList.add('visible'), i * 85);
+    });
+  }, 55);
+
+  // Slide 3 — task rows
+  if (index === 2) {
+    const rows = slide.querySelectorAll('.task-row');
+    rows.forEach((el, i) => setTimeout(() => el.classList.add('visible'), 350 + i * 100));
+  }
+
+  // Slide 2 — progress bars
+  if (index === 1) {
+    setTimeout(() => {
+      slide.querySelectorAll('.pb-fill').forEach(bar => {
+        bar.style.width = bar.dataset.value + '%';
+      });
+    }, 500);
+  }
+
+  // Slide 10 — collage entrance
+  if (index === 9) {
+    initCollage();
+  }
+
+  // Slide 12 — counters
+  if (index === 11) {
+    setTimeout(() => {
+      slide.querySelectorAll('.stat-number[data-target]').forEach(el => animateCounter(el));
+    }, 400);
+  }
+}
+
+// ═══════════════════════════════════════
+// 3D COLLAGE — Slide 10
+// ═══════════════════════════════════════
+let collageTimer = null;
+let collageActive = 0;
+const COLLAGE_N = 11;
+
+function initCollage() {
+  clearInterval(collageTimer);
+  collageActive = 0;
+
+  // Build dots
+  const dotsEl = document.getElementById('collage-dots');
+  if (dotsEl && dotsEl.children.length === 0) {
+    for (let i = 0; i < COLLAGE_N; i++) {
+      const d = document.createElement('div');
+      d.className = 'collage-dot' + (i === 0 ? ' active' : '');
+      d.addEventListener('click', () => collageGoTo(i));
+      dotsEl.appendChild(d);
+    }
+  }
+
+  // Entrance: scatter then snap
+  const cards = document.querySelectorAll('.collage-card');
+  cards.forEach((c, i) => {
+    const origPos = parseInt(c.dataset.pos);
+    c.style.opacity = '0';
+    c.style.transition = 'none';
+    setTimeout(() => {
+      c.style.transition = 'all 0.75s cubic-bezier(0.34, 1.3, 0.64, 1)';
+      c.style.opacity = '';
+    }, 120 + i * 90);
+  });
+
+  updateCollageDots();
+  collageTimer = setInterval(collageNext, 3600);
+}
+
+function collageGoTo(targetIdx) {
+  const cards = document.querySelectorAll('.collage-card');
+  // Find which card currently has pos=0
+  let frontCard = null;
+  cards.forEach(c => { if (parseInt(c.dataset.pos) === 0) frontCard = c; });
+  const frontIdx = frontCard ? parseInt(frontCard.dataset.idx) : 0;
+  const diff = (targetIdx - frontIdx + COLLAGE_N) % COLLAGE_N;
+  for (let step = 0; step < diff; step++) {
+    // rotate: each card's pos = (pos - 1 + N) % N
+    cards.forEach(c => {
+      const p = (parseInt(c.dataset.pos) - 1 + COLLAGE_N) % COLLAGE_N;
+      c.dataset.pos = p;
+    });
+  }
+  collageActive = targetIdx;
+  updateCollageDots();
+}
+
+function collageNext() {
+  const cards = document.querySelectorAll('.collage-card');
+  // advance: rotate positions (pos-1+N)%N  → next card comes to front
+  let nextFrontIdx = 0;
+  cards.forEach(c => {
+    const newPos = (parseInt(c.dataset.pos) - 1 + COLLAGE_N) % COLLAGE_N;
+    c.dataset.pos = newPos;
+    if (newPos === 0) nextFrontIdx = parseInt(c.dataset.idx);
+  });
+  collageActive = nextFrontIdx;
+  updateCollageDots();
+}
+
+function updateCollageDots() {
+  document.querySelectorAll('.collage-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === collageActive);
+  });
+}
+
+// Click a card to bring it to front
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('collage-stage').addEventListener('click', e => {
+    const card = e.target.closest('.collage-card');
+    if (!card) return;
+    collageGoTo(parseInt(card.dataset.idx));
+    clearInterval(collageTimer);
+    collageTimer = setInterval(collageNext, 3600);
+  });
+});
+
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target, 10);
+  const suffix = el.dataset.suffix || '';
+  const dur = 1000;
+  const start = performance.now();
+  (function upd(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(e * target) + suffix;
+    if (p < 1) requestAnimationFrame(upd);
+  })(performance.now());
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+slides[0].classList.add('active');
+updateUI();
+triggerSlideAnimations(0);
+
+// ═══════════════════════════════════════
+// TYPING EFFECT — SLIDE 1
+// ═══════════════════════════════════════
+const typingText = 'Голосовой ассистент в Telegram';
+const typedEl = document.getElementById('typed-text');
+(function typeIt(i) {
+  if (i <= typingText.length) {
+    typedEl.textContent = typingText.slice(0, i);
+    setTimeout(() => typeIt(i + 1), i === 0 ? 700 : 58);
+  }
+})(0);
+
+// ═══════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+  if (e.key === 'ArrowLeft')                    { e.preventDefault(); navigate(-1); }
+  if (e.key === 'Home')                         { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')                          { e.preventDefault(); goTo(TOTAL - 1); }
+});
+
+// ═══════════════════════════════════════
+// SCROLL MODE
+// ═══════════════════════════════════════
+function toggleScrollMode() {
+  scrollMode = !scrollMode;
+  document.body.classList.toggle('scroll-mode', scrollMode);
+  document.getElementById('scroll-toggle').textContent = scrollMode ? 'SLIDES' : 'SCROLL';
+  if (scrollMode) {
+    slides.forEach(s => { s.classList.add('active'); s.classList.remove('exit-left','exit-right','enter-right','enter-left'); });
+    setTimeout(() => slides.forEach(s => s.querySelectorAll('.stagger-item,.task-row,.pb-fill').forEach(el => {
+      el.classList.add('visible');
+      if (el.dataset.value) el.style.width = el.dataset.value + '%';
+    })), 100);
+  } else {
+    slides.forEach((s, i) => { if (i !== current) s.classList.remove('active'); });
+  }
+}
+
+// ═══════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════
+(function initParticles() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles;
+
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+
+  function make() {
+    particles = [];
+    for (let i = 0; i < 55; i++) {
+      particles.push({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.9, vy: (Math.random() - 0.5) * 0.9,
+        r: Math.random() * 1.8 + 0.5,
+        hue: Math.random() > 0.7 ? 270 : 195  // purple or cyan
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+    });
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 130) {
+          const alpha = (1 - dist/130) * 0.28;
+          ctx.strokeStyle = `hsla(${particles[i].hue},100%,65%,${alpha})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue},100%,70%,0.55)`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  resize(); make(); draw();
+  window.addEventListener('resize', () => { resize(); make(); });
+})();
+
+// ═══════════════════════════════════════
+// 3D TILT on cards (mouse move)
+// ═══════════════════════════════════════
+(function initTilt() {
+  const TILT_SELECTORS = [
+    '.scenario-card', '.stat-card', '.concl-card',
+    '.cc-card', '.class-card', '.layer-card',
+    '.cron-card', '.esc-card', '.goal-main',
+    '.flip-front', '.arch-node'
+  ];
+
+  function applyTilt(el, e) {
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width  / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    const rotX = -dy * 7;
+    const rotY =  dx * 7;
+    el.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(8px)`;
+    el.style.boxShadow = `${-dx*8}px ${-dy*8}px 24px rgba(0,207,255,0.12)`;
+    el.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
+  }
+
+  function resetTilt(el) {
+    el.style.transform = '';
+    el.style.boxShadow = '';
+    el.style.transition = 'transform 0.5s ease, box-shadow 0.5s ease';
+  }
+
+  document.addEventListener('mousemove', e => {
+    TILT_SELECTORS.forEach(sel => {
+      const el = e.target.closest(sel);
+      if (el && el.closest('.slide.active')) applyTilt(el, e);
+    });
+  });
+
+  document.addEventListener('mouseleave', () => {
+    TILT_SELECTORS.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => resetTilt(el));
+    });
+  }, true);
+
+  // Reset when mouse leaves the card
+  document.addEventListener('mouseover', e => {
+    TILT_SELECTORS.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        if (!el.contains(e.target) && !el.matches(':hover')) resetTilt(el);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
