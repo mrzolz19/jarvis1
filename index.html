@@ -609,9 +609,9 @@
     /* ══════════════════════════════════════════════════
        SLIDE 12 — МЕТРИКИ
     ══════════════════════════════════════════════════ */
-    #slide-12 .metrics-wrap { width:100%; max-width:920px; }
+    #slide-12 .metrics-wrap { width:100%; max-width:960px; }
     .stats-4 {
-      display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.2rem;
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1rem;
     }
     .stat-card {
       background: var(--surface); border: 1px solid var(--border);
@@ -626,18 +626,164 @@
     }
     .stat-unit { font-size:0.7rem; color:var(--accent); }
     .stat-label { font-size:0.74rem; color:var(--text-muted); line-height:1.4; }
-    .perf-list {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem;
-    }
-    .perf-item {
+
+    /* Infographic timeline pipeline */
+    .perf-pipeline {
+      display: flex; align-items: stretch; gap: 0;
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0.8rem 1rem;
-      display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;
+      border-radius: 12px; overflow: hidden; margin-bottom: 0.9rem;
     }
-    .perf-name { font-size:0.8rem; color:var(--text); }
-    .perf-time {
-      font-family: var(--font-mono); font-size: 0.82rem; color: var(--green);
-      text-shadow: 0 0 6px var(--green-glow); white-space: nowrap;
+    .pp-step {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 0.85rem 0.6rem 0.7rem;
+      position: relative; min-width: 0;
+      border-right: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .pp-step:last-child { border-right: none; }
+    .pp-step:hover { background: rgba(0,207,255,0.04); }
+    .pp-step.slow { background: rgba(245,158,11,0.04); }
+    .pp-step.slow:hover { background: rgba(245,158,11,0.08); }
+
+    /* Animated fill bar at bottom of each step */
+    .pp-bar-track {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 3px; background: var(--surface2);
+    }
+    .pp-bar-fill {
+      height: 100%; width: 0; border-radius: 0;
+      transition: width 1.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .pp-bar-fill.c1 { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .pp-bar-fill.c2 { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    .pp-bar-fill.c3 { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+    .pp-bar-fill.c4 { background: var(--amber);  box-shadow: 0 0 6px var(--amber); }
+    .pp-bar-fill.c5 { background: #ec4899;       box-shadow: 0 0 6px #ec4899; }
+    .pp-bar-fill.c6 { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+    .pp-bar-fill.c7 { background: var(--text-dim); }
+
+    .pp-icon  { font-size: 1.2rem; margin-bottom: 0.3rem; }
+    .pp-label { font-size: 0.67rem; color: var(--text-muted); text-align: center; line-height: 1.3; margin-bottom: 0.35rem; }
+    .pp-time  {
+      font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
+      text-align: center; white-space: nowrap;
+    }
+    .pp-time.c1 { color: var(--accent); }
+    .pp-time.c2 { color: var(--green); }
+    .pp-time.c3 { color: var(--purple); }
+    .pp-time.c4 { color: var(--amber); }
+    .pp-time.c5 { color: #ec4899; }
+    .pp-time.c6 { color: var(--red); }
+    .pp-time.c7 { color: var(--text-dim); }
+
+    /* Arrow connectors between steps */
+    .pp-step::after {
+      content: '›'; position: absolute; right: -10px; top: 50%;
+      transform: translateY(-50%); color: var(--border2); font-size: 1.1rem;
+      z-index: 2; pointer-events: none;
+    }
+    .pp-step:last-child::after { display: none; }
+
+    /* Total row */
+    .perf-total {
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, rgba(0,207,255,0.07), rgba(139,92,246,0.05));
+      border: 1px solid rgba(0,207,255,0.25); border-radius: 10px;
+      padding: 0.7rem 1.2rem;
+    }
+    .pt-label { font-size: 0.82rem; color: var(--text-muted); }
+    .pt-label strong { color: var(--text); }
+    .pt-time {
+      font-family: var(--font-mono); font-size: 1rem; font-weight: 700;
+      color: var(--accent); text-shadow: 0 0 8px var(--accent-glow);
+    }
+    .pt-note { font-size: 0.72rem; color: var(--text-dim); }
+
+    /* ── COLLAGE ZOOM OVERLAY ── */
+    #collage-zoom {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(4,9,26,0.92); backdrop-filter: blur(14px);
+      align-items: center; justify-content: center; flex-direction: column;
+      cursor: zoom-out;
+    }
+    #collage-zoom.open { display: flex; }
+    #collage-zoom img {
+      max-width: 88vw; max-height: 82vh;
+      border-radius: 14px; border: 2px solid var(--accent);
+      box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(0,207,255,0.1);
+      object-fit: contain;
+      animation: zoomIn 0.3s cubic-bezier(0.34,1.3,0.64,1);
+    }
+    @keyframes zoomIn {
+      from { transform: scale(0.82); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    #collage-zoom-label {
+      margin-top: 0.9rem;
+      font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent);
+      letter-spacing: 1px;
+    }
+    #collage-zoom-hint {
+      font-size: 0.72rem; color: var(--text-dim); margin-top: 0.3rem;
+    }
+    #collage-zoom-close {
+      position: absolute; top: 20px; right: 24px;
+      background: rgba(11,22,40,0.85); border: 1px solid var(--border);
+      color: var(--text); width: 40px; height: 40px; border-radius: 8px;
+      font-size: 18px; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; backdrop-filter: blur(8px);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #collage-zoom-close:hover { border-color: var(--accent); background: rgba(0,207,255,0.12); }
+
+    /* Magnify cursor hint on collage front card */
+    .collage-card[data-pos="0"] { cursor: zoom-in; }
+    .collage-zoom-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,207,255,0.12); border: 1px solid rgba(0,207,255,0.3);
+      border-radius: 6px; padding: 3px 7px;
+      font-size: 0.62rem; font-family: var(--font-mono);
+      color: var(--accent); pointer-events: none; letter-spacing: 1px;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .collage-card[data-pos="0"]:hover .collage-zoom-btn { opacity: 1; }
+
+    /* Pause indicator */
+    .collage-pause-badge {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4);
+      border-radius: 6px; padding: 3px 8px;
+      font-size: 0.6rem; font-family: var(--font-mono); color: var(--amber);
+      letter-spacing: 1px; display: none; text-transform: uppercase;
+    }
+    .collage-stage.paused .collage-pause-badge { display: block; }
+    #collage-pause-btn {
+      background: rgba(11,22,40,0.7); border: 1px solid var(--border);
+      color: var(--text-muted); padding: 4px 12px; border-radius: 6px;
+      font-family: var(--font-mono); font-size: 0.68rem; cursor: pointer;
+      margin-left: 1rem; transition: border-color 0.2s, color 0.2s;
+      letter-spacing: 1px;
+    }
+    #collage-pause-btn:hover { border-color: var(--amber); color: var(--amber); }
+    #collage-pause-btn.paused { border-color: var(--amber); color: var(--amber); }
+
+    /* ── COLLEGE LOGO (fixed corner) ── */
+    #college-logo {
+      position: fixed; bottom: 14px; left: 14px;
+      display: flex; align-items: center; gap: 10px;
+      z-index: 50; opacity: 0.6;
+      transition: opacity 0.25s;
+    }
+    #college-logo:hover { opacity: 1; }
+    #college-logo img {
+      width: 56px; height: 56px; object-fit: contain;
+      border-radius: 8px;
+      filter: brightness(0.95) saturate(0.75);
+    }
+    #college-logo span {
+      font-family: var(--font-mono); font-size: 0.66rem;
+      color: var(--text-dim); letter-spacing: 0.5px; line-height: 1.4;
+      max-width: 140px;
     }
 
     /* ══════════════════════════════════════════════════
@@ -785,6 +931,20 @@
 </head>
 <body>
 
+<!-- Collage zoom overlay -->
+<div id="collage-zoom">
+  <button id="collage-zoom-close" onclick="closeZoom()">✕</button>
+  <img id="collage-zoom-img" src="" alt="">
+  <div id="collage-zoom-label"></div>
+  <div id="collage-zoom-hint">Нажмите куда угодно, чтобы закрыть · ESC</div>
+</div>
+
+<!-- College logo (fixed corner) -->
+<div id="college-logo">
+  <img src="Колледж.png" alt="ППК СГТУ">
+  <span>ППК СГТУ<br>им. Ю. А. Гагарина</span>
+</div>
+
 <div id="progress-bar"></div>
 <div class="hex-bg"></div>
 <canvas id="particles-canvas"></canvas>
@@ -809,7 +969,7 @@
     <div class="title-corner bl"></div><div class="title-corner br"></div>
     <div class="title-tag">Индивидуальный IT-проект</div>
     <h1 class="main-title" id="typed-title"><span id="typed-text" class="typing-cursor"></span></h1>
-    <div class="main-subtitle">Персональный суверенный голосовой ассистент в Telegram</div>
+    <div class="main-subtitle">Персональный голосовой ассистент в Telegram</div>
     <div class="tech-row">
       <span class="badge badge-blue">Python 3.13</span>
       <span class="badge badge-purple">n8n + Docker</span>
@@ -1203,15 +1363,17 @@
   <div class="collage-stage" id="collage-stage">
     <div class="collage-card" data-pos="0" data-idx="0">
       <img src="Пример 1.png" alt="Текстовый запрос">
-      <div class="collage-label"><span class="cl-active">&#x1F4AC; Текстовый запрос</span></div>
+      <div class="collage-zoom-btn">🔍 zoom</div>
+      <div class="collage-pause-badge">⏸ пауза</div>
+      <div class="collage-label"><span class="cl-active">&#x1F4AC; Планирование</span></div>
     </div>
     <div class="collage-card" data-pos="1" data-idx="1">
-      <img src="Пример 2.png" alt="Голосовой запрос">
-      <div class="collage-label">&#x1F399; Голосовой запрос</div>
+      <img src="Пример 2.png" alt="Декомпозиция цели">
+      <div class="collage-label">&#x1F399; Декомпозиция цели</div>
     </div>
     <div class="collage-card" data-pos="2" data-idx="2">
-      <img src="Пример 2 продолжение.png" alt="Голосовой запрос (продолжение)">
-      <div class="collage-label">&#x1F399; Голосовой (прод.)</div>
+      <img src="Пример 2 продолжение.png" alt="Декомпозиция цели (продолжение)">
+      <div class="collage-label">&#x1F399; Декомпозиция цели (прод.)</div>
     </div>
     <div class="collage-card" data-pos="3" data-idx="3">
       <img src="Пример 2 Google Calendar.png" alt="Google Calendar">
@@ -1223,30 +1385,34 @@
     </div>
     <div class="collage-card" data-pos="5" data-idx="5">
       <img src="Пример 3.png" alt="Управление сессиями">
-      <div class="collage-label">&#x1F4BE; Сессии контекста</div>
+      <div class="collage-label">&#x1F4BE; Пустой запрос</div>
     </div>
     <div class="collage-card" data-pos="6" data-idx="6">
-      <img src="Пример 4.png" alt="Декомпозиция целей">
-      <div class="collage-label">&#x1F3AF; Декомпозиция целей</div>
+      <img src="Пример 4.png" alt="Утренний бриффинг">
+      <div class="collage-label">&#x1F3AF; Утренний бриффинг</div>
     </div>
     <div class="collage-card" data-pos="7" data-idx="7">
-      <img src="Пример 4 продолжение.png" alt="Декомпозиция (продолжение)">
-      <div class="collage-label">&#x1F3AF; Декомпозиция (прод.)</div>
+      <img src="Пример 4 продолжение.png" alt="Утренний бриффинг(продолжение)">
+      <div class="collage-label">&#x1F3AF; Утренний брифиинг (прод.)</div>
     </div>
     <div class="collage-card" data-pos="8" data-idx="8">
-      <img src="Пример 5.png" alt="Голосовой ответ TTS">
-      <div class="collage-label">&#x1F50A; Голосовой ответ TTS</div>
+      <img src="Пример 5.png" alt="Утренний бриффинг">
+      <div class="collage-label">&#x1F50A; Утренний бриффинг</div>
     </div>
     <div class="collage-card" data-pos="9" data-idx="9">
-      <img src="Пример 6.png" alt="Вечерний отчёт">
-      <div class="collage-label">&#x1F319; Вечерний отчёт</div>
+      <img src="Пример 6.png" alt="Переключение на предыдущий диалог">
+      <div class="collage-label">&#x1F319; Переключение на предыдущий диалог</div>
     </div>
     <div class="collage-card" data-pos="10" data-idx="10">
-      <img src="Пример 6 продолжение.png" alt="Вечерний отчёт (продолжение)">
-      <div class="collage-label">&#x1F319; Вечерний отчёт (прод.)</div>
+      <img src="Пример 6 продолжение.png" alt="Переключение на предыдущий диалог (продолжение)">
+      <div class="collage-label">&#x1F319; Переключение на предыдущий диалог (прод.)</div>
     </div>
   </div>
-  <div class="collage-dots" id="collage-dots"></div>
+  <div class="collage-dots" id="collage-dots">
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;margin-top:0.5rem;">
+    <button id="collage-pause-btn" onclick="toggleCollagePause()">⏸ ПАУЗА</button>
+  </div>
 </section>
 
 <!-- ╔══════════════════════════════╗
@@ -1318,30 +1484,61 @@
         <div class="stat-label">успешных<br>сценариев</div>
       </div>
     </div>
-    <div class="perf-list stagger-item">
-      <div class="perf-item">
-        <span class="perf-name">&#x1F4E5; Захват медиапотока (Telegram → шлюз)</span>
-        <span class="perf-time">0.15 – 0.25 с</span>
+
+    <!-- Infographic pipeline -->
+    <div class="perf-pipeline stagger-item" id="perf-pipeline">
+      <div class="pp-step">
+        <div class="pp-icon">📥</div>
+        <div class="pp-label">Захват<br>медиапотока</div>
+        <div class="pp-time c1">0.15–0.25 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c1" data-pct="25"></div></div>
       </div>
-      <div class="perf-item">
-        <span class="perf-name">&#x2601; Groq Whisper — транскрипция STT</span>
-        <span class="perf-time">0.20 – 0.50 с</span>
+      <div class="pp-step">
+        <div class="pp-icon">🔄</div>
+        <div class="pp-label">ffmpeg<br>OGG→WAV</div>
+        <div class="pp-time c2">~0.10 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c2" data-pct="10"></div></div>
       </div>
-      <div class="perf-item">
-        <span class="perf-name">&#x1F50A; SileroTTS — синтез речи (CPU)</span>
-        <span class="perf-time">0.35 – 0.45 с</span>
+      <div class="pp-step">
+        <div class="pp-icon">☁️</div>
+        <div class="pp-label">Groq Whisper<br>STT</div>
+        <div class="pp-time c2">0.20–0.50 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c2" data-pct="50"></div></div>
       </div>
-      <div class="perf-item">
-        <span class="perf-name">&#x1F3F7; Llama-3-8b — именование сессии</span>
-        <span class="perf-time">0.25 – 0.40 с</span>
+      <div class="pp-step">
+        <div class="pp-icon">🔗</div>
+        <div class="pp-label">Webhook<br>n8n</div>
+        <div class="pp-time c3">~0.05 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c3" data-pct="5"></div></div>
       </div>
-      <div class="perf-item">
-        <span class="perf-name">&#x1F5A5; Хост-сервер: CPU 2 ядра / RAM 4 ГБ</span>
-        <span class="perf-time">Linux</span>
+      <div class="pp-step slow">
+        <div class="pp-icon">🧠</div>
+        <div class="pp-label">LLM DeepSeek<br>рассуждение</div>
+        <div class="pp-time c6">60–120 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c6" data-pct="100"></div></div>
       </div>
-      <div class="perf-item">
-        <span class="perf-name">&#x1F6E1; Фильтр: no_speech_prob &gt; 0.6 · logprob &lt; −1.0</span>
-        <span class="perf-time">~0 мс</span>
+      <div class="pp-step">
+        <div class="pp-icon">🔊</div>
+        <div class="pp-label">SileroTTS<br>синтез</div>
+        <div class="pp-time c4">0.35–0.45 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c4" data-pct="45"></div></div>
+      </div>
+      <div class="pp-step">
+        <div class="pp-icon">📤</div>
+        <div class="pp-label">OGG → Telegram<br>отправка</div>
+        <div class="pp-time c7">~0.10 с</div>
+        <div class="pp-bar-track"><div class="pp-bar-fill c7" data-pct="10"></div></div>
+      </div>
+    </div>
+
+    <div class="perf-total stagger-item">
+      <div>
+        <div class="pt-label"><strong>Полный цикл голосового запроса</strong> (без LLM)</div>
+        <div class="pt-note">Захват + STT + TTS + отправка · хост: CPU 2 ядра / RAM 4 ГБ · Linux</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="pt-time">~1.2 с</div>
+        <div class="pt-note" style="color:var(--red);">+ LLM ответ: 1–2 мин</div>
       </div>
     </div>
   </div>
@@ -1387,7 +1584,7 @@
       </div>
     </div>
     <div class="final-line stagger-item">
-      «Голос — самый <span class="acc">естественный</span> интерфейс для <span class="acc">суверенного</span> ИИ»
+      «Голос — самый <span class="acc">естественный</span> интерфейс для <span class="acc">ИИ</span>»
     </div>
   </div>
 </section>
@@ -1523,10 +1720,13 @@ function triggerSlideAnimations(index) {
     initCollage();
   }
 
-  // Slide 12 — counters
+  // Slide 12 — counters + pipeline bars
   if (index === 11) {
     setTimeout(() => {
       slide.querySelectorAll('.stat-number[data-target]').forEach(el => animateCounter(el));
+      slide.querySelectorAll('.pp-bar-fill').forEach(bar => {
+        bar.style.width = bar.dataset.pct + '%';
+      });
     }, 400);
   }
 }
@@ -1606,16 +1806,75 @@ function updateCollageDots() {
   });
 }
 
-// Click a card to bring it to front
+// Click a card to bring it to front; double-click / click front card → zoom
+let collagePaused = false;
+
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('collage-stage').addEventListener('click', e => {
+  const stage = document.getElementById('collage-stage');
+
+  stage.addEventListener('click', e => {
     const card = e.target.closest('.collage-card');
     if (!card) return;
-    collageGoTo(parseInt(card.dataset.idx));
-    clearInterval(collageTimer);
-    collageTimer = setInterval(collageNext, 3600);
+    const pos = parseInt(card.dataset.pos);
+
+    if (pos === 0) {
+      // Front card clicked → open zoom
+      openZoom(card);
+    } else {
+      // Background card clicked → bring to front
+      collageGoTo(parseInt(card.dataset.idx));
+      if (!collagePaused) {
+        clearInterval(collageTimer);
+        collageTimer = setInterval(collageNext, 3600);
+      }
+    }
+  });
+
+  // Close zoom on overlay click
+  document.getElementById('collage-zoom').addEventListener('click', e => {
+    if (e.target === document.getElementById('collage-zoom') ||
+        e.target === document.getElementById('collage-zoom-img')) {
+      closeZoom();
+    }
   });
 });
+
+function openZoom(card) {
+  const img = card.querySelector('img');
+  const label = card.querySelector('.collage-label');
+  const overlay = document.getElementById('collage-zoom');
+  document.getElementById('collage-zoom-img').src = img.src;
+  document.getElementById('collage-zoom-img').alt = img.alt;
+  document.getElementById('collage-zoom-label').textContent = label ? label.textContent.trim() : '';
+  overlay.classList.add('open');
+  // Pause auto-rotate while zoomed
+  clearInterval(collageTimer);
+}
+
+function closeZoom() {
+  document.getElementById('collage-zoom').classList.remove('open');
+  if (!collagePaused) {
+    collageTimer = setInterval(collageNext, 3600);
+  }
+}
+
+function toggleCollagePause() {
+  const btn = document.getElementById('collage-pause-btn');
+  const stage = document.getElementById('collage-stage');
+  collagePaused = !collagePaused;
+
+  if (collagePaused) {
+    clearInterval(collageTimer);
+    btn.textContent = '▶ ПРОДОЛЖИТЬ';
+    btn.classList.add('paused');
+    stage.classList.add('paused');
+  } else {
+    collageTimer = setInterval(collageNext, 3600);
+    btn.textContent = '⏸ ПАУЗА';
+    btn.classList.remove('paused');
+    stage.classList.remove('paused');
+  }
+}
 
 function animateCounter(el) {
   const target = parseInt(el.dataset.target, 10);
@@ -1657,6 +1916,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft')                    { e.preventDefault(); navigate(-1); }
   if (e.key === 'Home')                         { e.preventDefault(); goTo(0); }
   if (e.key === 'End')                          { e.preventDefault(); goTo(TOTAL - 1); }
+  if (e.key === 'Escape') {
+    const zoom = document.getElementById('collage-zoom');
+    if (zoom && zoom.classList.contains('open')) { e.preventDefault(); closeZoom(); }
+  }
 });
 
 // ═══════════════════════════════════════
